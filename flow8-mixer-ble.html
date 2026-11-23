@@ -68,8 +68,8 @@
   #log .tx { color:#8ab4ff; } #log .err { color:#ff8a8a; }
   .t-ble{--tc:var(--c-ble)} .t-midi{--tc:var(--c-midi)} .t-both{--tc:var(--c-both)}
   input[type=range].t-ble,input[type=range].t-midi,input[type=range].t-both{accent-color:var(--tc)}
-  button.t-ble,button.t-midi,button.t-both,select.t-ble,select.t-midi,select.t-both,input[type=number].t-ble,input[type=number].t-midi,input[type=number].t-both{border:1px solid var(--tc);box-shadow:inset 0 -3px 0 var(--tc)}
-  input[type=number]{background:#31363d;color:var(--text);border-radius:6px;padding:4px 6px;font:inherit}
+  button.t-ble,button.t-midi,button.t-both,select.t-ble,select.t-midi,select.t-both,input[type=number].t-ble,input[type=number].t-midi,input[type=number].t-both,input.lblin{border:1px solid var(--tc);box-shadow:inset 0 -3px 0 var(--tc)}
+  input[type=number],input.lblin{background:#31363d;color:var(--text);border-radius:6px;padding:4px 6px;font:inherit}
   #detail button.on.t-ble,#detail button.on.t-midi,#detail button.on.t-both{background:var(--tc);color:#fff}
   #bleSt.gest{background:#ffb454;color:#1b1e22;font-weight:700;font-size:15px;padding:7px 16px;border-radius:6px;border:2px solid #ff8a00;box-shadow:0 0 0 2px #0006}
   .hright{margin-left:auto;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
@@ -376,8 +376,28 @@ tip_color_auto:Average of the Bluetooth and MIDI colors (H, S, L)
 btn_color_default:Default Colors
 
 # Switches and log lines
-confirm_phantom:Turn on 48V on {n}?\nOnly if no sensitive device (e.g. a ribbon microphone) is connected.
 log_phantom:{n} phantom {s}
+sec_name:Name and Icon
+row_label:Name
+row_icon:Icon
+tip_label:Name on the mixer (up to 21 characters, plain ASCII only); Enter or leaving the field sends it
+tip_icon:Icon number as in the FLOW app (0 = none); pictures to follow
+log_label:{n} name "{t}", icon {i}
+sec_preset:Channel Preset
+row_preset_ch:File
+btn_preset_save:Save Channel
+btn_preset_load:Load Channel
+hint_preset_ch:JSON file; only what this channel supports is loaded. 48V is never loaded; the send to MAIN or the bus fader goes to –∞
+log_preset_saved:Preset of {n} saved
+log_preset_loaded:Preset loaded onto {n}
+log_preset_skipped:not applied: {l}
+log_preset_item:Preset {n}: {w}
+preset_bad_file:This is not a channel preset file of this tool.
+preset_wrong_kind:This file is a preset for {f} and does not fit {t}.
+preset_kind_input:an input
+preset_kind_bus:a bus (MAIN/MON)
+preset_kind_fx:an FX bus
+preset_48v_manual:Please turn on 48V manually
 phase_inverted:inverted
 phase_normal:normal
 log_phase:{n} phase {s}
@@ -516,6 +536,10 @@ opt_pre:Pre
 set_usb_playback:USB/BT Playback
 opt_phones_only:Phones Only
 opt_main_mix:Main Mix
+set_phones_tap:Phones Tap Point
+set_usb_mode:USB Mode
+opt_usb_recording:Recording (10Ch)
+opt_usb_streaming:Streaming (Main 2Ch)
 set_mon_link:Monitor Stereo Link
 set_main_pad:Main −10 dBV Pad
 confirm_main_pad:Switching the main pad changes the output level by 10 dB. Continue?
@@ -529,7 +553,7 @@ confirm_snapshot_ble:(Bluetooth slot numbering not verified)
 log_snapshot_load:Load snapshot {n}
 row_snapshots:Snapshots
 row_names:Names
-note_global:The mapping of the setting IDs (BLE command 0x25) comes from the app library; the meaning of the values has not been verified everywhere. Snapshot 16 (reset), factory reset and saving/deleting snapshots are left out on purpose.
+note_global:The setting IDs (BLE command 0x25) come from the app library and have been tested on the mixer. Snapshot 16 (reset), factory reset and saving/deleting snapshots are left out on purpose.
 
 # Raw bytes
 raw_global:Global and other
@@ -735,11 +759,11 @@ function applyLang() {
 const FLOW8_LAYOUT = {
   matrix: 24,                       // 16 x 16 float32 (dB): Pegel [Quelle][Ziel], Diagonale = Master-Fader des Busses
   mute: 1048, solo: 1064,           // je 16 Bytes, Index = Kanal-ID
-  labels: 1164, labelStride: 26, labelLen: 5,   // Kanalnamen, 16 Datensätze
+  labels: 1164, labelStride: 26, labelLen: 22,  // Kanalnamen, 16 Datensätze: 2 Bytes ?, Icon u16, Name 22 Bytes (21 Zeichen + Null; dahinter Restbytes)
   eq: 1580, eqStride: 56,           // Eingangskanäle 0..6: Gain, Comp, Low Cut, 4 x PEQ
   geq: 1972, geqStride: 100,        // Bus-Kanal-IDs 10..15: 9 x Gain, 9 x Frequenz, 9 x Q
   pan: 1096,                        // 16 x float32, -1 (links) .. +1 (rechts); Kanal 4 bestätigt, Rest nach gleichem Muster
-  usbMode: 2569, mon12Route: 2593, fxTempo: 2576, fx: 2578, fxStride: 7,
+  usbMode: 2601, phonesOnly: 2569, btUsb: 2568, mon12Route: 2593, fxTempo: 2576, fx: 2578, fxStride: 7,
   flags: 2603                       // globale Schalter: [0] Routing 5/6 USB(1)/lokal(0), [1] Routing 7/8 (vermutet), Rest offen
 };
 const FLOW8_NAMES = { 0: 'name_ch1', 1: 'name_ch2', 2: 'name_ch3', 3: 'name_ch4', 4: 'name_ch56', 5: 'name_ch78', 6: 'name_usbbt',
@@ -764,6 +788,11 @@ function flow8Check(raw) {
   return null;
 }
 
+function flow8Label(u, id) {      // Name bis zur ersten Null (höchstens 21 Zeichen); dahinter stehen Restbytes aus dem Empfangspuffer des Pults
+  const lo = FLOW8_LAYOUT.labels + FLOW8_LAYOUT.labelStride * id; let s = '';
+  for (let k = 0; k < 21; k++) { const c = u[lo + k]; if (c < 32 || c > 126) break; s += String.fromCharCode(c); }
+  return s;
+}
 function flow8Decode(raw) {
   const u = flow8Unpack(raw), L = FLOW8_LAYOUT;
   const dv = new DataView(u.buffer, u.byteOffset, u.byteLength);
@@ -774,11 +803,10 @@ function flow8Decode(raw) {
 
   for (let id = 0; id < 7; id++) {
     const g = L.eq + L.eqStride * id, lo = L.labels + L.labelStride * id;
-    let label = '';
-    for (let k = 0; k < L.labelLen; k++) { const c = u[lo + k]; if (c < 32 || c > 126) break; label += String.fromCharCode(c); }
+    const label = flow8Label(u, id);
     S.channels.push({
       channelId: id, label, iconId: u16(lo - 2),
-      gaindB: f32(g), comp: f32(g + 4), HPFFrequency: u16(g + 8), pan: f32(L.pan + 4 * id), phantom: u[g - 2] !== 0, lowCutOn: u[g - 4] !== 0, phase: u[g - 3] !== 0,
+      gaindB: f32(g), comp: f32(g + 4), HPFFrequency: u16(g + 8), pan: f32(L.pan + 4 * id), phantom: u[g - 2] !== 0, lowCutOn: u[g - 4] !== 0, phase: u[g - 3] !== 0, reserved: u[1080 + id] !== 0,
      
       peqGaindBs: n4.map(k => f32(g + 12 + 4 * k)),
       peqFrequencies: n4.map(k => u16(g + 28 + 2 * k)),
@@ -790,7 +818,7 @@ function flow8Decode(raw) {
   for (const id of [10, 11, 15]) {
     const b = L.geq + L.geqStride * (id - 10);
     S.outputs[id] = {
-      channelId: id, volumedB: M(id, id), limiterdB: f32(b - 4), delaySamples: u16(b + 92), delayms: u16(b + 92) / 48, delaym: u16(b + 92) / 48 * 0.343,   // m: Schall bei 343 m/s
+      channelId: id, label: flow8Label(u, id), iconId: u16(L.labels + L.labelStride * id - 2), volumedB: M(id, id), limiterdB: f32(b - 4), delaySamples: u16(b + 92), delayms: u16(b + 92) / 48, delaym: u16(b + 92) / 48 * 0.343,   // m: Schall bei 343 m/s
         // Delay: u16 in Samples bei 48 kHz (bestätigt: Main, Mon 1/2)
         // Limiter: Float direkt vor dem EQ-Block (bestätigt: Main, Mon 1, Mon 2)
       geqGaindBs: n9.map(k => f32(b + 4 * k)),
@@ -802,7 +830,7 @@ function flow8Decode(raw) {
   [12, 13].forEach((id, k) => {
     const o = L.fx + L.fxStride * k;
     S.outputs[id] = {
-      channelId: id, volumedB: M(id, id),
+      channelId: id, label: flow8Label(u, id), iconId: u16(L.labels + L.labelStride * id - 2), volumedB: M(id, id),
       auxToFXChannels: [{ channelId: 10, gaindB: M(id, 10) }, { channelId: 11, gaindB: M(id, 11) }],
       firstParameterValue: u[o], secondParameterValue: u[o + 1], thirdParameterValue: u[o + 2],
       selectedPreset: u[o + 3] - 1,                 // im Dump 1-basiert
@@ -819,9 +847,11 @@ function flow8Decode(raw) {
   S.hpSourceMonitor = u[L.flags + 3] !== 0;          // bestätigt
   S.mainPad = u[L.flags + 5] !== 0;                  // bestätigt
   S.monPad = u[L.flags + 6] !== 0;                   // bestätigt
-  S.monPost = u[L.flags + 8] !== 0;                  // bestätigt (1 = Post, 0 = Pre)
+  S.monPost = u[L.flags + 8] !== 0;                  // Einstellung 17: Tap Point Eingänge → Monitor (1 = Post, 0 = Pre, bezogen auf den Kanal-Fader)
+  S.phonesPost = u[L.flags + 4] !== 0;               // Einstellung 13: Kopfhörer Tap Point bei Quelle Monitor (1 = Post, 0 = Pre)
   S.mon12Routing = u[L.mon12Route];                  // bestätigt: 0 Monitor-Mix, 1 USB 1/2, 2 USB 3/4
-  S.usbPhonesOnly = u[L.usbMode] !== 0;              // bestätigt (1 = nur Kopfhörer)
+  S.usbPhonesOnly = u[L.phonesOnly] !== 0;           // Einstellung 2 (1 = nur Kopfhörer)
+  S.usbStreaming = u[L.usbMode] !== 0;               // Einstellung 7: USB-Modus (0 = Recording 10 Kanäle, 1 = Streaming Main 2 Kanäle)
   S.u = u;
   return S;
 }
@@ -835,8 +865,10 @@ function flow8Fields() {
   for (let id = 0; id < 16; id++) {
     add(L.mute + id, 1, 'u8', `Mute ${N(id)}`);
     add(L.solo + id, 1, 'u8', `Solo ${N(id)}`);
-    add(L.labels + L.labelStride * id, L.labelLen, 'txt', `Name ${N(id)}`);
+    add(L.labels + L.labelStride * id, L.labelLen, 'txt', `Name ${N(id)} (bis zur Null; dahinter Restbytes des Namenspuffers)`);
     add(L.labels + L.labelStride * id - 2, 2, 'u16', `Icon ${N(id)} (0 = keins; Icon-Nr. vermutet)`);
+    add(L.labels + L.labelStride * id - 4, 2, 'raw', `Namenspuffer ${N(id)} (Restbytes, ohne Bedeutung)`);
+    add(1080 + id, 1, 'u8', `Reserved ${N(id)} (BLE 0x49, nur Eingänge; keine hörbare Wirkung)`);
   }
   for (let id = 0; id < 7; id++) {
     const g = L.eq + L.eqStride * id, c = N(id);
@@ -848,13 +880,14 @@ function flow8Fields() {
       add(g + 28 + 2 * k, 2, 'u16', `EQ ${c} Band ${k + 1} Frequenz`);
       add(g + 36 + 4 * k, 4, 'f32', `EQ ${c} Band ${k + 1} Q` + (k === 0 || k === 3 ? ' (0 = Shelf, bestätigt)' : ''));
     }
-    if (id < 6) { add(g - 4, 1, 'u8', `Low Cut ${c} ein (1 = an, bestätigt Kanal 2, 3, 5/6)`); add(g - 3, 1, 'u8', `Phase ${c} invertiert (1 = an, bestätigt Kanal 2, 4)`); }
+    if (id < 6) add(g - 4, 1, 'u8', `Low Cut ${c} ein (1 = an, bestätigt Kanal 2, 3, 5/6)`);
+    add(g - 3, 1, 'u8', `Phase ${c} invertiert (1 = an, bestätigt Kanal 2, 4, USB/BT)`);
     add(g - 2, 1, 'u8', id < 2 ? `Phantomspeisung ${c} (1 = an)` : `Phantomspeisung ${c} (1 = an; nach gleichem Muster vermutet)`);
   }
   for (let id = 10; id <= 15; id++) {
     const b = L.geq + L.geqStride * (id - 10);
     for (let k = 0; k < 9; k++) {
-      if (k === 0) { add(b - 4, 4, 'f32', `Limiter ${N(id)} (dB)`); if (id === 10 || id === 11 || id === 15) add(b + 92, 2, 'u16', `Delay ${N(id)} (Samples; 48 = 1 ms ≈ 0,343 m)`); }
+      if (k === 0) { add(b - 4, 4, 'f32', `Limiter ${N(id)} (dB)`); if (id === 10 || id === 11 || id === 15) { add(b + 92, 2, 'u16', `Delay ${N(id)} (Samples; 48 = 1 ms ≈ 0,343 m)`); add(b + 94, 2, 'raw', `Delay ${N(id)} obere Bytes (Befehl 0x4A sendet u32; bisher immer 0)`); } }
       const fxq = id === 12 || id === 13 ? ' (FX-Bus: steht im Dump, wirkt nicht)' : '';
       add(b + 4 * k, 4, 'f32', `EQ ${N(id)} Band ${k + 1} Gain` + fxq);
       add(b + 36 + 2 * k, 2, 'u16', `EQ ${N(id)} Band ${k + 1} Frequenz` + fxq);
@@ -872,10 +905,12 @@ function flow8Fields() {
     for (let e = 0; e < 3; e++) add(o + 4 + e, 1, 'u8', `${c} an ${['Main', 'Mon 1', 'Mon 2'][e]}` + (e === 2 ? ' (nach Muster)' : ' (bestätigt)'));
   });
   const flagNames = { 0: 'Routing Kanal 5/6 (1 = USB, 0 = lokal)', 1: 'Routing Kanal 7/8 (1 = USB, 0 = lokal)',
-    2: 'Monitor Stereo-Link (1 = an)', 3: 'Kopfhörer-Quelle (1 = Monitor, 0 = Main)', 5: 'Main-Pad (1 = an)', 6: 'Monitor-Pad (1 = an)', 8: 'Monitor 1/2 Post/Pre (1 = Post, 0 = Pre)' };
+    2: 'Monitor Stereo-Link (1 = an)', 3: 'Kopfhörer-Quelle (1 = Monitor, 0 = Main)', 4: 'Kopfhörer Tap Point (Einstellung 13; 1 = Post, 0 = Pre)', 5: 'Main-Pad (1 = an)', 6: 'Monitor-Pad (1 = an)', 8: 'Monitor Tap Point (Einstellung 17; 1 = Post, 0 = Pre)' };
   for (let i = 0; i < 12; i++) add(L.flags + i, 1, 'u8', flagNames[i] || `Globaler Schalter @${L.flags + i} (unbekannt)`);
   add(L.mon12Route, 1, 'u8', 'Monitor 1/2 Quelle (0 = Monitor-Mix, 1 = USB 1/2, 2 = USB 3/4)');
-  add(L.usbMode, 1, 'u8', 'USB/BT-Wiedergabe (1 = nur Kopfhörer, 0 = Main-Mix)');
+  add(L.phonesOnly, 1, 'u8', 'USB/BT-Wiedergabe (Einstellung 2; 1 = nur Kopfhörer, 0 = Main-Mix)');
+  add(L.usbMode, 1, 'u8', 'USB-Modus (Einstellung 7; 0 = Recording 10 Kanäle, 1 = Streaming Main 2 Kanäle)');
+  add(L.btUsb, 1, 'u8', 'BT/USB-Umschaltung (Einstellung 1)');
   return F;
 }
 
@@ -996,7 +1031,7 @@ function flow8Text(d) {
   t += `\nFX 1: Preset ${d.outputs[12].selectedPreset}, Parameter ${d.outputs[12].firstParameterValue}/${d.outputs[12].secondParameterValue}/${d.outputs[12].thirdParameterValue}   FX 2: Preset ${d.outputs[13].selectedPreset}, Parameter ${d.outputs[13].firstParameterValue}/${d.outputs[13].secondParameterValue}/${d.outputs[13].thirdParameterValue}   FX-Tempo ${d.fxTempo}\n` +
     `FX-Routing: FX 1 → ${['Main', 'Mon 1', 'Mon 2'].filter((_, i) => d.outputs[12].enable[i]).join(', ') || 'nichts'}   FX 2 → ${['Main', 'Mon 1', 'Mon 2'].filter((_, i) => d.outputs[13].enable[i]).join(', ') || 'nichts'}\n`;
   t += `Kopfhörer: ${f1(d.headphoneVolumedB)} dB (CC ${levelToCC(d.headphoneVolumedB)}) Quelle: ${d.hpSourceMonitor ? 'Monitor' : 'Main'}   Main-Pad: ${d.mainPad ? 'an' : 'aus'}   Routing 5/6: ${d.channel56USB12 ? 'USB' : 'lokal'}   Routing 7/8: ${d.channel78USB34 ? 'USB' : 'lokal'}\n` +
-    `Monitor: Stereo-Link ${d.monStereoLink ? 'an' : 'aus'}, Pad ${d.monPad ? 'an' : 'aus'}, ${d.monPost ? 'Post' : 'Pre'}   USB/BT-Wiedergabe: ${d.usbPhonesOnly ? 'nur Kopfhörer' : 'Main-Mix'}   Monitor-Quelle: ${['Monitor-Mix', 'USB 1/2', 'USB 3/4'][d.mon12Routing] || d.mon12Routing}\n`;
+    `Monitor: Stereo-Link ${d.monStereoLink ? 'an' : 'aus'}, Pad ${d.monPad ? 'an' : 'aus'}, ${d.monPost ? 'Post' : 'Pre'}   USB/BT-Wiedergabe: ${d.usbPhonesOnly ? 'nur Kopfhörer' : 'Main-Mix'}   USB-Modus: ${d.usbStreaming ? 'Streaming' : 'Recording'}   Kopfhörer Tap Point: ${d.phonesPost ? 'Post' : 'Pre'}   Monitor-Quelle: ${['Monitor-Mix', 'USB 1/2', 'USB 3/4'][d.mon12Routing] || d.mon12Routing}\n`;
   return t;
 }
 // ---- Warnung: nicht zugeordnetes Byte springt von 0 auf einen anderen Wert ----
@@ -1120,6 +1155,7 @@ function setMode(m) { mode = m; try { localStorage.setItem('flow8.mode', m); } c
 
 // ---- BLE-Kodierung (Feldlayout aus der Bibliothek der Android-App; Prüfsumme = Summe mod 256) ----
 const FADER_TABLE = [-144.0, -88.118, -86.235, -84.353, -82.471, -80.588, -78.706, -76.824, -74.941, -73.059, -71.176, -69.294, -67.412, -65.529, -63.647, -61.765, -59.961, -59.333, -58.706, -58.078, -57.451, -56.824, -56.196, -55.569, -54.941, -54.314, -53.686, -53.059, -52.431, -51.804, -51.176, -50.549, -49.922, -49.294, -48.667, -48.039, -47.412, -46.784, -46.157, -45.529, -44.902, -44.275, -43.647, -43.02, -42.392, -41.765, -41.137, -40.51, -39.882, -39.255, -38.627, -38.0, -37.373, -36.745, -36.118, -35.49, -34.863, -34.235, -33.608, -32.98, -32.353, -31.725, -31.098, -30.471, -29.922, -29.608, -29.294, -28.98, -28.667, -28.353, -28.039, -27.725, -27.412, -27.098, -26.784, -26.471, -26.157, -25.843, -25.529, -25.216, -24.902, -24.588, -24.275, -23.961, -23.647, -23.333, -23.02, -22.706, -22.392, -22.078, -21.765, -21.451, -21.137, -20.824, -20.51, -20.196, -19.882, -19.569, -19.255, -18.941, -18.627, -18.314, -18.0, -17.686, -17.373, -17.059, -16.745, -16.431, -16.118, -15.804, -15.49, -15.176, -14.863, -14.549, -14.235, -13.922, -13.608, -13.294, -12.98, -12.667, -12.353, -12.039, -11.725, -11.412, -11.098, -10.784, -10.471, -10.157, -9.922, -9.765, -9.608, -9.451, -9.294, -9.137, -8.98, -8.824, -8.667, -8.51, -8.353, -8.196, -8.039, -7.882, -7.725, -7.569, -7.412, -7.255, -7.098, -6.941, -6.784, -6.627, -6.471, -6.314, -6.157, -6.0, -5.843, -5.686, -5.529, -5.373, -5.216, -5.059, -4.902, -4.745, -4.588, -4.431, -4.275, -4.118, -3.961, -3.804, -3.647, -3.49, -3.333, -3.176, -3.02, -2.863, -2.706, -2.549, -2.392, -2.235, -2.078, -1.922, -1.765, -1.608, -1.451, -1.294, -1.137, -0.98, -0.824, -0.667, -0.51, -0.353, -0.196, 0.0, 0.118, 0.275, 0.431, 0.588, 0.745, 0.902, 1.059, 1.216, 1.373, 1.529, 1.686, 1.843, 2.0, 2.157, 2.314, 2.471, 2.627, 2.784, 2.941, 3.098, 3.255, 3.412, 3.569, 3.725, 3.882, 4.039, 4.196, 4.353, 4.51, 4.667, 4.824, 4.98, 5.137, 5.294, 5.451, 5.608, 5.765, 5.922, 6.078, 6.235, 6.392, 6.549, 6.706, 6.863, 7.02, 7.176, 7.333, 7.49, 7.647, 7.804, 7.961, 8.118, 8.275, 8.431, 8.588, 8.745, 8.902, 9.059, 9.216, 9.373, 9.529, 9.686, 9.843, 10.0];
+const labelClean = t => String(t || '').replace(/[^\x20-\x7E]/g, '').slice(0, 21);      // Namen: nur druckbares ASCII, höchstens 21 Zeichen (wie im Dump lesbar)
 const sum8 = a => a.reduce((x, y) => x + y, 0) & 255;
 const pkt = (type, ...b) => { const a = [type, 1, ...b]; a.push(sum8(a)); return a; };
 const u16b = n => [(n >> 8) & 255, n & 255];
@@ -1148,7 +1184,8 @@ const B = {
   fxPreset: (id, p) => pkt(0x31, id, p),
   fxTempo: bpm => pkt(0x40, ...u16b(bpm)),
   setting: (sid, val) => pkt(0x25, sid, 1, val),
-  snapLoad: slot => pkt(0x20, slot)
+  snapLoad: slot => pkt(0x20, slot),
+  label: (id, icon, text) => { const t = labelClean(text); return pkt(0x05, id, ...u16b(icon), t.length, ...[...t].map(ch => ch.charCodeAt(0))); }   // Kanalname + Icon (Text: Länge + Zeichen, höchstens 21)
 };
 
 // ---- Senden: nur bei Bedienung; gleiche Regler werden gebündelt (der letzte Wert gewinnt) ----
@@ -1538,9 +1575,8 @@ $('btnColors').addEventListener('click', () => { const p = $('colors'); p.style.
 // ---- Schalter im Kanalzug ----
 function togglePhantom(id) {
   const c = D.channels[id], want = !c.phantom;
-  if (want && !confirm(_t('confirm_phantom', { n: nameOf(id) }))) return;
-  c.phantom = want;
-  go({ label: _t('log_phantom', { n: nameOf(id), s: _t(want ? 'on' : 'off') }), key: 'ph48' + id, midi: id < 2 ? () => cc(id + 1, 12, want ? 127 : 0, _t('log_phantom', { n: nameOf(id), s: _t(want ? 'on' : 'off') })) : null, ble: B.phantom(id, want) });
+  c.phantom = want;      // ohne Rückfrage; wird nie automatisch gesendet (auch nicht beim Laden eines Kanal-Presets)
+  go({ label: _t('log_phantom', { n: nameOf(id), s: _t(want ? 'on' : 'off') }), key: 'ph48' + id, midi: () => cc(id + 1, 12, want ? 127 : 0, _t('log_phantom', { n: nameOf(id), s: _t(want ? 'on' : 'off') })), ble: B.phantom(id, want) });
   renderDetail(); refreshStrips();
 }
 function togglePhase(id) {
@@ -1627,12 +1663,15 @@ function makeStrip(id, master) {
   // Zeile 1: 48V (bei 5/6 und 7/8: USB) / Phase / HPF; Platz bleibt frei, wenn es sie nicht gibt
   const tg = el('div', { class: 'togs' });
   if (isCh && id < 6) {
-    if (id < 4) r.t48 = mark(el('button', { class: 'tog', text: _t('tog_48v'), title: _t('tip_phantom') + ' – ', onclick: () => togglePhantom(id) }), id < 2 ? 'both' : 'ble');
+    if (id < 4) r.t48 = mark(el('button', { class: 'tog', text: _t('tog_48v'), title: _t('tip_phantom') + ' – ', onclick: () => togglePhantom(id) }), 'both');
     else r.t48 = mark(el('button', { class: 'tog', text: _t('tog_usb'), title: _t(id === 4 ? 'route_ch56_usb12' : 'route_ch78_usb34') + ' – ', onclick: () => toggleUsb(id) }), 'ble');
     r.tph = mark(el('button', { class: 'tog', text: _t('tog_phase'), title: _t('tip_phase') + ' – ', onclick: () => togglePhase(id) }), 'ble');
     r.thp = mark(el('button', { class: 'tog', text: _t('tog_hpf'), title: _t('tip_lowcut') + ' – ', onclick: () => toggleHpf(id) }), 'ble');
     for (const b of [r.t48, r.tph, r.thp]) b.title += KTXT[b.classList.contains('t-both') ? 'both' : 'ble'];
     tg.append(r.t48, r.tph, r.thp);
+  } else if (isCh && id === 6) {      // USB/BT: nur Phase (Platz für 48V und HPF bleibt frei)
+    r.tph = mark(el('button', { class: 'tog', text: _t('tog_phase'), title: _t('tip_phase') + ' – ', onclick: () => togglePhase(id) }), 'ble'); r.tph.title += KTXT.ble;
+    tg.append(el('span', { class: 'tog', style: 'visibility:hidden' }), r.tph, el('span', { class: 'tog', style: 'visibility:hidden' }));
   }
   if (master) { r.sof = el('div', { class: 'softag', title: _t('tip_sof_target') }); setK(r.sof, 'sof_target'); tg.append(r.sof); }      // Bus, dessen Sends die Kanal-Fader gerade zeigen (Sends on Fader); bricht bei langem Text um
   root.append(tg);
@@ -1725,7 +1764,7 @@ function refreshStrips() {
     r.root.classList.toggle('mix', master && id === selMix);
     r.root.classList.toggle('sel', sel.id === id && (sel.kind === 'ch') !== master && sel.kind !== 'global');
     r.name.textContent = master ? BUS[id].name : flow8Name(id);
-    r.label.textContent = master ? '' : (flow8Name(id) === nameOf(id) ? '' : nameOf(id));
+    r.label.textContent = master ? ((D.outputs[id] && D.outputs[id].label && D.outputs[id].label !== BUS[id].name) ? D.outputs[id].label : '') : (flow8Name(id) === nameOf(id) ? '' : nameOf(id));
     if (master) {
       const o = D.outputs[id];
       r.fader.value = levelToCC(o.volumedB); setDb(r, o.volumedB);
@@ -1738,6 +1777,7 @@ function refreshStrips() {
       const c = D.channels[id];
       r.fader.value = levelToCC(c.sends[selMix]); setDb(r, c.sends[selMix]);
       if (r.gk) r.gk.set(c.gaindB);
+      if (r.tph && !r.t48) r.tph.classList.toggle('on', !!c.phase);
       if (r.t48) { r.t48.classList.toggle('on', id < 4 ? !!c.phantom : usbOn(id)); r.tph.classList.toggle('on', !!c.phase); r.thp.classList.toggle('on', !!c.lowCutOn); r.thp.title = _t('tip_lowcut_hz', { hz: lowCutHz(c.HPFFrequency) }) + ' – ' + KTXT.ble; }
       const pv = Math.round(c.pan * 100); r.pan.inp.value = pv; r.pan.lab.textContent = _t('pan_prefix', { v: panTxt(pv) });
       r.mute.classList.toggle('on', c.isMuted); r.solo.classList.toggle('on', c.isSolo);
@@ -1814,6 +1854,7 @@ function renderDetailInto(pane, tabs, isG) {
   if (sel.kind === 'ch') {
     const c = D.channels[id];
     const list = tab === 'all' ? ['eq', 'dyn', 'sends'] : [tab], head = { eq: _t('tab_eq'), dyn: _t('tab_dyn'), sends: _t('tab_sends') };
+    if (tab === 'all') { const kvn = el('div', { class: 'kv' }); labelRow(kvn, 'ch', id); pane.append(el('h3', { class: 'sec', text: _t('sec_name') }), kvn); }
     for (const T of list) {
     let rtaSw = null;
     if (T === 'eq' && (id === 4 || id === 5)) {
@@ -1890,7 +1931,7 @@ function renderDetailInto(pane, tabs, isG) {
       box.append(el('div', { class: 'dynblk' }, el('div', { class: 'dyngain' }, el('div', { class: 'dim', text: _t('row_comp') }), ck.box, ck.lab), ccv));
       const bt = el('div', { class: 'dynbtns' });
       bt.append(btn('ble', _t(c.phase ? 'btn_phase_inverted' : 'btn_phase_normal'), () => togglePhase(id), c.phase));
-      if (id < 4) { const b48 = mark(el('button', { text: _t(c.phantom ? 'btn_phantom_off' : 'btn_phantom_on'), onclick: () => togglePhantom(id) }), id < 2 ? 'both' : 'ble'); if (c.phantom) b48.classList.add('v48on'); bt.append(b48); }
+      if (id < 4) { const b48 = mark(el('button', { text: _t(c.phantom ? 'btn_phantom_off' : 'btn_phantom_on'), onclick: () => togglePhantom(id) }), 'both'); if (c.phantom) b48.classList.add('v48on'); bt.append(b48); }
       else if (id < 6) bt.append(btn('ble', _t(usbOn(id) ? 'btn_usb_on' : 'btn_usb_off'), () => toggleUsb(id), usbOn(id)));
       box.append(bt);
       pane.append(box);
@@ -1915,9 +1956,11 @@ function renderDetailInto(pane, tabs, isG) {
       pane.append(kv);
     }
     }
+    if (tab === 'all') { const kvp = el('div', { class: 'kv' }); presetRow(kvp, 'ch', id); pane.append(el('h3', { class: 'sec', text: _t('sec_preset') }), kvp); }
   } else if (sel.kind === 'bus') {
     const o = D.outputs[id];
     const list = tab === 'all' ? (GEQ_BUS.includes(id) ? ['geq', 'limdly'] : ['fx']) : [tab], head = { geq: _t('tab_geq'), limdly: _t('tab_limdly'), fx: _t('tab_fx') };
+    if (tab === 'all') { const kvn = el('div', { class: 'kv' }); labelRow(kvn, 'bus', id); pane.append(el('h3', { class: 'sec', text: _t('sec_name') }), kvn); }
     for (const T of list) {
     if (list.length > 1) pane.append(el('h3', { class: 'sec', text: head[T] }));
     if (T === 'geq') {
@@ -2025,6 +2068,7 @@ function renderDetailInto(pane, tabs, isG) {
       pane.append(kv);
     }
     }
+    if (tab === 'all') { const kvp = el('div', { class: 'kv' }); presetRow(kvp, 'bus', id); pane.append(el('h3', { class: 'sec', text: _t('sec_preset') }), kvp); }
   } else if (tab === 'global') {
     const kv = el('div', { class: 'kv' });
     langRow(kv);
@@ -2034,16 +2078,21 @@ function renderDetailInto(pane, tabs, isG) {
     const setBool = (sid, label, get, setLocal, confirmTxt) => kv.append(...row(label, btn('ble', _t(get() ? 'on' : 'off'), () => {
       const want = !get(); if (confirmTxt && !confirm(confirmTxt)) return;
       setLocal(want); go({ label: _t('log_setting', { l: label, s: _t(want ? 'on' : 'off') }), key: 'set' + sid, ble: B.setting(sid, want ? 1 : 0) }); renderDetail(); }, get())));
-    const slideSw = (sid, label, leftTxt, rightTxt, get, setLocal) => {
-      const left = !!get();
-      const go2 = toLeft => { if (toLeft === !!get()) return; setLocal(toLeft); go({ label: _t('log_setting_sw', { l: label, v: toLeft ? leftTxt : rightTxt }), key: 'set' + sid, ble: B.setting(sid, toLeft ? 1 : 0) }); renderDetail(); };
-      const track = mark(el('button', { class: 'sw' + (left ? '' : ' right'), role: 'switch', 'aria-checked': String(!left), onclick: () => go2(!get()) }, el('span', { class: 'swk' })), 'ble');
+    // Schiebeschalter: leftVal = Wert der linken Seite (0 oder 1); get/setLocal arbeiten mit dem Wert 0/1
+    const slideSw = (sid, label, leftTxt, rightTxt, leftVal, get, setLocal) => {
+      const left = (get() ? 1 : 0) === leftVal;
+      const go2 = toLeft => { const v = toLeft ? leftVal : 1 - leftVal; if (v === (get() ? 1 : 0)) return; setLocal(v);
+        go({ label: _t('log_setting_sw', { l: label, v: toLeft ? leftTxt : rightTxt }), key: 'set' + sid, ble: B.setting(sid, v) }); renderDetail(); };
+      const track = mark(el('button', { class: 'sw' + (left ? '' : ' right'), role: 'switch', 'aria-checked': String(!left), onclick: () => go2(!left) }, el('span', { class: 'swk' })), 'ble');
       kv.append(...row(label, el('span', { class: 'swrow' }, el('span', { class: 'swl' + (left ? ' act' : ''), text: leftTxt, onclick: () => go2(true) }), track,
         el('span', { class: 'swl' + (left ? '' : ' act'), text: rightTxt, onclick: () => go2(false) }))));
     };
-    slideSw(12, _t('set_phones_source'), _t('opt_mon12'), _t('name_main_cap'), () => D.hpSourceMonitor, v => D.hpSourceMonitor = v);
-    slideSw(13, _t('set_mon_tap'), _t('opt_post'), _t('opt_pre'), () => D.monPost, v => D.monPost = v);
-    slideSw(7, _t('set_usb_playback'), _t('opt_phones_only'), _t('opt_main_mix'), () => D.usbPhonesOnly, v => D.usbPhonesOnly = v);
+    // Tap-Point-Schalter: immer links Pre (0), rechts Post (1)
+    slideSw(12, _t('set_phones_source'), _t('opt_mon12'), _t('name_main_cap'), 1, () => D.hpSourceMonitor, v => D.hpSourceMonitor = !!v);
+    slideSw(13, _t('set_phones_tap'), _t('opt_pre'), _t('opt_post'), 0, () => D.phonesPost, v => D.phonesPost = !!v);
+    slideSw(17, _t('set_mon_tap'), _t('opt_pre'), _t('opt_post'), 0, () => D.monPost, v => D.monPost = !!v);
+    slideSw(2, _t('set_usb_playback'), _t('opt_phones_only'), _t('opt_main_mix'), 1, () => D.usbPhonesOnly, v => D.usbPhonesOnly = !!v);
+    slideSw(7, _t('set_usb_mode'), _t('opt_usb_recording'), _t('opt_usb_streaming'), 0, () => D.usbStreaming, v => D.usbStreaming = !!v);
     setBool(11, _t('set_mon_link'), () => D.monStereoLink, v => D.monStereoLink = v);
     setBool(14, _t('set_main_pad'), () => D.mainPad, v => D.mainPad = v, _t('confirm_main_pad'));
     setBool(15, _t('set_mon_pad'), () => D.monPad, v => D.monPad = v, _t('confirm_mon_pad'));
@@ -2062,6 +2111,125 @@ function renderDetailInto(pane, tabs, isG) {
   if (tab === 'raw') renderRaw(pane);
 }
 let fxMuted = false;
+
+// ================= Kanalname und Icon =================
+function labelOf(kind, id) { const o = kind === 'ch' ? D.channels[id] : D.outputs[id]; return o ? { label: o.label || '', icon: o.iconId || 0 } : { label: '', icon: 0 }; }
+function sendLabel(kind, id, text, icon) {
+  const o = kind === 'ch' ? D.channels[id] : D.outputs[id], t = labelClean(text), ic = clamp(Math.round(+icon || 0), 0, 65535);
+  o.label = t; o.iconId = ic;
+  go({ label: _t('log_label', { n: kind === 'ch' ? flow8Name(id) : BUS[id].name, t, i: ic }), key: 'lbl' + id, ble: B.label(id, ic, t) });
+  refreshStrips(); renderChips();
+}
+function labelRow(kv, kind, id) {
+  const cur = labelOf(kind, id);
+  const ti = mark(el('input', { type: 'text', class: 'lblin', maxlength: 21, value: cur.label, style: 'width:190px', title: _t('tip_label') }), 'ble');
+  const ii = mark(el('input', { type: 'number', min: 0, max: 65535, step: 1, value: cur.icon, style: 'width:80px', title: _t('tip_icon') }), 'ble');
+  const fire = () => { const t = labelClean(ti.value); ti.value = t; const now = labelOf(kind, id); if (t === now.label && (+ii.value | 0) === now.icon) return; sendLabel(kind, id, t, ii.value); };
+  ti.addEventListener('keydown', e => { if (e.key === 'Enter') ti.blur(); });
+  ti.addEventListener('change', fire); ii.addEventListener('change', fire);
+  kv.append(...row(_t('row_label'), ti, ' ' + _t('row_icon') + ' ', ii));
+}
+
+// ================= Kanal-Preset (JSON) =================
+// Speichert alles, was wir setzen können; beim Laden nur, was der Zielkanal kann.
+// Nie geladen: 48V (nur Meldung). Eingänge: Send zu MAIN auf −∞. Busse: Master-Fader auf −∞. Mute/Solo werden nicht gespeichert.
+const PRESET_TYPE = 'flow8-channel-preset';
+const presetKind = (kind, id) => kind === 'ch' ? 'input' : GEQ_BUS.includes(id) ? 'bus' : 'fx';
+function presetData(kind, id) {
+  const k = presetKind(kind, id), base = { type: PRESET_TYPE, version: 1, kind: k, sourceId: id, sourceName: kind === 'ch' ? flow8Name(id) : BUS[id].name, saved: new Date().toISOString() };
+  if (k === 'input') {
+    const c = D.channels[id];
+    return Object.assign(base, { label: c.label || '', icon: c.iconId || 0, gaindB: c.gaindB, comp: c.comp, lowCutOn: !!c.lowCutOn, lowCutHz: lowCutHz(c.HPFFrequency), phase: !!c.phase,
+      phantom: !!c.phantom, usb: id === 4 || id === 5 ? usbOn(id) : null, pan: c.pan,
+      peq: [0, 1, 2, 3].map(b => ({ f: c.peqFrequencies[b], g: c.peqGaindBs[b], q: c.peqQValues[b] })),
+      sends: { main: c.sends[15], mon1: c.sends[10], mon2: c.sends[11], fx1: c.sends[12], fx2: c.sends[13] } });
+  }
+  const o = D.outputs[id];
+  Object.assign(base, { label: o.label || '', icon: o.iconId || 0, faderdB: o.volumedB, balance: curU ? flow8PanAt(id) : 0 });
+  if (k === 'bus') return Object.assign(base, { limiterdB: o.limiterdB, delaySamples: o.delaySamples,
+    geq: o.geqFrequencies.map((f, b) => ({ f, g: o.geqGaindBs[b], q: o.geqQValues[b] })) });
+  return Object.assign(base, { fxSlot: id === 12 ? 1 : 2, preset: o.selectedPreset + 1, p1: o.firstParameterValue, p2: o.secondParameterValue, p3: o.thirdParameterValue,
+    toMain: !!o.enable[0], toMon1: !!o.enable[1], toMon2: !!o.enable[2], returnMon1: o.auxToFXChannels[0].gaindB, returnMon2: o.auxToFXChannels[1].gaindB });
+}
+function presetSave(kind, id) {
+  const j = presetData(kind, id), nm = (j.label || j.sourceName).replace(/[^\w\-]+/g, '_');
+  const a = el('a', { href: URL.createObjectURL(new Blob([JSON.stringify(j, null, 2)], { type: 'application/json' })), download: `flow8-preset-${j.kind}-${nm}.json` });
+  document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  log(_t('log_preset_saved', { n: j.sourceName }));
+}
+function presetPick(kind, id) {
+  const fi = el('input', { type: 'file', accept: '.json,application/json' });
+  fi.addEventListener('change', async () => { const f = fi.files[0]; if (!f) return;
+    let j = null; try { j = JSON.parse(await f.text()); } catch (e) {}
+    if (!j || j.type !== PRESET_TYPE) { alert(_t('preset_bad_file')); return; }
+    presetLoad(kind, id, j); });
+  fi.click();
+}
+const num = (v, d) => typeof v === 'number' && isFinite(v) ? v : d;
+function presetLoad(kind, id, j) {
+  const k = presetKind(kind, id), nm = kind === 'ch' ? nameOf(id) : BUS[id].name;
+  if (j.kind !== k) { alert(_t('preset_wrong_kind', { f: _t('preset_kind_' + j.kind), t: _t('preset_kind_' + k) })); return; }
+  const L = t => _t('log_preset_item', { n: nm, w: t }), skipped = [];
+  if (typeof j.label === 'string') sendLabel(kind, id, j.label, num(j.icon, 0));
+  if (k === 'input') {
+    const c = D.channels[id], ch = id + 1;
+    if (id < 6 && typeof j.gaindB === 'number') { const db = clamp(j.gaindB, -20, 60); c.gaindB = db; go({ label: L(_t('row_gain') + ' ' + db.toFixed(1) + ' dB'), key: 'gain' + id, midi: () => cc(ch, 8, gainToCC(db), L(_t('row_gain'))), ble: B.gain(id, db) }); }
+    else if (typeof j.gaindB === 'number') skipped.push(_t('row_gain'));
+    if (typeof j.comp === 'number') { const v = clamp(Math.round(j.comp * 100), 0, 100); c.comp = v / 100; go({ label: L(_t('row_comp') + ' ' + v + ' %'), key: 'comp' + id, midi: () => cc(ch, 11, v, L(_t('row_comp'))), ble: B.comp(id, v / 100) }); }
+    if (id < 6 && typeof j.lowCutHz === 'number') { const hz = clamp(Math.round(j.lowCutHz), 20, 600), on = !!j.lowCutOn; c.HPFFrequency = hzToRaw(hz); c.lowCutOn = on;
+      go({ label: L(_t('row_lowcut') + ' ' + hz + ' Hz ' + _t(on ? 'on' : 'off')), key: 'hpf' + id, midi: () => { cc(ch, 9, hzToCC(hz), L(_t('row_lowcut'))); if (hasBle()) bleSend('hpf' + id, B.hpf(id, on, hzToRaw(hz)), L(_t('row_lowcut'))); }, ble: B.hpf(id, on, hzToRaw(hz)) }); }
+    else if (typeof j.lowCutHz === 'number') skipped.push(_t('row_lowcut'));
+    if (typeof j.phase === 'boolean') { c.phase = j.phase; go({ label: L(_t('tip_phase') + ' ' + _t(j.phase ? 'phase_inverted' : 'phase_normal')), key: 'phase' + id, ble: B.phase(id, j.phase) }); }
+    if ((id === 4 || id === 5) && typeof j.usb === 'boolean') { if (id === 4) D.channel56USB12 = j.usb; else D.channel78USB34 = j.usb;
+      go({ label: L(_t(id === 4 ? 'route_ch56_usb12' : 'route_ch78_usb34') + ' ' + _t(j.usb ? 'on' : 'off')), key: 'set' + (id === 4 ? 9 : 10), ble: B.setting(id === 4 ? 9 : 10, j.usb ? 1 : 0) }); }
+    else if (typeof j.usb === 'boolean') skipped.push('USB');
+    if (typeof j.pan === 'number') { const p = clamp(j.pan, -1, 1); c.pan = p; tbSetPan(id, false, p); }
+    if (Array.isArray(j.peq)) j.peq.slice(0, 4).forEach((b, n) => { if (!b) return;
+      const f = clamp(Math.round(num(b.f, PEQ_DEF_F[n])), 20, 20000), g = clamp(num(b.g, 0), -15, 15), q = clamp(num(b.q, 1), 0, 10.7);
+      c.peqFrequencies[n] = f; c.peqGaindBs[n] = g; c.peqQValues[n] = q; const l = L(_t('log_peq_full', { n: nm, k: n + 1, f, v: fmtDb(g), q: q.toFixed(2) }));
+      go({ label: l, key: `peq${id}.${n}`, midi: () => { cc(ch, 1 + n, eqToCC(g), l); cc(ch, 21 + n, hzToFcc(f), l); cc(ch, 31 + n, qToCC(q), l); }, ble: B.peq(id, n, f, q, g) }); });
+    const sd = j.sends || {};
+    c.sends[15] = -144; go({ label: L(_t('row_send_to', { b: BUS[15].name }) + ' –∞'), key: `lvl${id}>15`, midi: () => cc(ch, BUS[15].sendCC, 0, L(BUS[15].name)), ble: B.level(id, 15, -144) });
+    for (const [key, b] of [['mon1', 10], ['mon2', 11], ['fx1', 12], ['fx2', 13]]) if (typeof sd[key] === 'number') { const db = clamp(sd[key], -144, 10); c.sends[b] = db;
+      go({ label: L(_t('row_send_to', { b: BUS[b].name }) + ' ' + fmtDb(db)), key: `lvl${id}>${b}`, midi: () => cc(ch, BUS[b].sendCC, db <= -143 ? 0 : levelToCC(db), L(BUS[b].name)), ble: B.level(id, b, db) }); }
+    if (j.phantom && id < 4) alert(_t('preset_48v_manual'));
+    if (j.phantom) log(_t('preset_48v_manual'), 'err');
+  } else {
+    const o = D.outputs[id], ch = BUS[id].ch;
+    o.volumedB = -144; go({ label: L(_t('log_master', { n: nm, v: '–∞' })), key: 'lvl' + id + '>' + id, midi: () => cc(ch, 7, 0, L(nm)), ble: B.level(id, id, -144) });
+    if (typeof j.balance === 'number') tbSetPan(id, true, clamp(j.balance, -1, 1));
+    if (k === 'bus') {
+      if (typeof j.limiterdB === 'number') { const db = clamp(j.limiterdB, -30, 0), v = clamp(Math.round((db + 30) / 30 * 127), 0, 127); o.limiterdB = db;
+        go({ label: L(_t('row_limiter') + ' ' + db.toFixed(1) + ' dB'), key: 'lim' + id, midi: () => cc(ch, 8, v, L(_t('row_limiter'))), ble: B.limiter(id, db) }); }
+      if (typeof j.delaySamples === 'number') { const n = clamp(Math.round(j.delaySamples), 0, 65535); o.delaySamples = n; o.delayms = n / 48;
+        go({ label: L(_t('row_delay') + ' ' + n), key: 'dly' + id, ble: B.delay(id, n) }); }
+      if (Array.isArray(j.geq)) j.geq.slice(0, 9).forEach((b, n) => { if (!b) return;
+        const f = clamp(Math.round(num(b.f, GEQ_DEF_F[n])), 20, 20000), g = clamp(num(b.g, 0), -15, 15), q = clamp(num(b.q, 1), 0, 10.7);
+        o.geqFrequencies[n] = f; o.geqGaindBs[n] = g; o.geqQValues[n] = q; const l = L(_t('log_geq_full', { n: nm, k: n + 1, f, v: fmtDb(g), q: q.toFixed(2) }));
+        go({ label: l, key: `geq${id}.${n}`, midi: () => { cc(ch, 11 + n, eqToCC(g), l); cc(ch, 21 + n, hzToFcc(f), l); cc(ch, 31 + n, qToCC(q), l); }, ble: B.geq(id, n, f, q, g) }); });
+    } else {
+      const slot = id === 12 ? 14 : 15, same = j.fxSlot === (id === 12 ? 1 : 2);
+      if (same) {
+        const pr = clamp(Math.round(num(j.preset, 1)), 1, 16); o.selectedPreset = pr - 1;
+        go({ label: L(_t('log_fx_preset', { n: nm, v: pr })), key: 'fxp' + id, midi: () => sendMidi([0xC0 | (slot - 1), pr], L(_t('row_preset'))), ble: B.fxPreset(id, pr - 1) });
+        o.firstParameterValue = clamp(Math.round(num(j.p1, 0)), 0, 100); o.secondParameterValue = j.p2 ? 1 : 0; o.thirdParameterValue = clamp(Math.round(num(j.p3, 0)), 0, 100);
+      } else skipped.push(_t('row_preset'), 'P1–P3');
+      o.enable = [!!j.toMain, !!j.toMon1, !!j.toMon2];
+      // FX-Parameter und Routing: per Bluetooth ein Paket; per MIDI nur P1–P3 (Routing gibt es nur per Bluetooth)
+      go({ label: L(_t('row_routing')), key: 'fx' + id, midi: () => { if (same) { cc(slot, 1, o.firstParameterValue, L('P1')); cc(slot, 2, o.secondParameterValue ? 127 : 0, L('P2')); cc(slot, 3, o.thirdParameterValue, L('P3')); }
+          if (hasBle()) bleSend('fx' + id, B.fx(id, o.firstParameterValue, o.secondParameterValue, o.thirdParameterValue, o.enable), L(_t('row_routing'))); },
+        ble: B.fx(id, o.firstParameterValue, o.secondParameterValue, o.thirdParameterValue, o.enable) });
+      [[j.returnMon1, 0, 10], [j.returnMon2, 1, 11]].forEach(([v, n, mon]) => { if (typeof v !== 'number') return; const db = clamp(v, -144, 10); o.auxToFXChannels[n].gaindB = db;
+        go({ label: L(_t('row_return_to', { b: BUS[mon].name }) + ' ' + fmtDb(db)), key: `lvl${id}>${mon}`, ble: B.level(id, mon, db) }); });
+    }
+  }
+  log(_t('log_preset_loaded', { n: nm }) + (skipped.length ? ' – ' + _t('log_preset_skipped', { l: skipped.join(', ') }) : ''));
+  refreshStrips(); renderDetail();
+}
+function presetRow(kv, kind, id) {
+  kv.append(...row(_t('row_preset_ch'), el('button', { text: _t('btn_preset_save'), onclick: () => presetSave(kind, id) }), ' ', el('button', { text: _t('btn_preset_load'), onclick: () => presetPick(kind, id) }),
+    el('span', { class: 'dim', text: '   ' + _t('hint_preset_ch') })));
+}
 
 // ================= Rohbytes (grün) =================
 function idOffsets(id) {
@@ -2547,7 +2715,7 @@ function eqWire(cv, ctl, getBands) {
 // ================= Handys und Tablets im gleichen Netzwerk =================
 // Weg: Handy -> /r/cmd -> Seite am PC -> MIDI/Bluetooth -> FLOW 8. Zurück: Dump -> Seite am PC -> /r/state -> Handy. Pegel/RTA über /r/audio.
 // Der Mini-Server prüft den Zugangscode; die Seite am PC prüft zusätzlich jeden Befehl (nur bekannte Nachrichten, Snapshots nur am PC).
-const RM_BLE_OK = [0x00, 0x01, 0x02, 0x03, 0x04, 0x06, 0x08, 0x09, 0x10, 0x11, 0x13, 0x14, 0x25, 0x31, 0x40, 0x4A];
+const RM_BLE_OK = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x10, 0x11, 0x13, 0x14, 0x25, 0x31, 0x40, 0x4A];
 const rmBytes = (a, min, max) => Array.isArray(a) && a.length >= min && a.length <= max && a.every(x => Number.isInteger(x) && x >= 0 && x < 256);
 function rmCheck(c) {            // true = erlaubt, 'blocked' = nur am PC, false = ungültig
   if (!c || typeof c !== 'object') return false;
@@ -2555,14 +2723,14 @@ function rmCheck(c) {            // true = erlaubt, 'blocked' = nur am PC, false
   if (c.m) {
     const b = c.m; if (!rmBytes(b, 2, 3)) return false;
     const st = b[0] & 0xF0, ch = b[0] & 15;
-    if (st === 0xB0 && b.length === 3 && b[1] < 128 && b[2] < 128) return true;                                          // CC (auch 48V, mit Rückfrage am Gerät)
+    if (st === 0xB0 && b.length === 3 && b[1] < 128 && b[2] < 128) return true;                                          // CC (auch 48V)
     if (b[0] === 0xCF) return 'blocked';                                                                                   // Snapshot laden
     if (st === 0xC0 && b.length === 2 && b[1] < 128) return true;                                                          // FX-Preset
     if (b[0] === 0x9F && b.length === 3 && b[1] < 128 && b[2] < 128) return true;                                          // Tap Tempo
     return false;
   }
   if (c.b) {
-    const b = c.b; if (!rmBytes(b, 4, 12) || b[1] !== 1 || sum8(b.slice(0, -1)) !== b[b.length - 1]) return false;
+    const b = c.b; if (!rmBytes(b, 4, b && b[0] === 0x05 ? 28 : 12) || b[1] !== 1 || sum8(b.slice(0, -1)) !== b[b.length - 1]) return false;
     if (b[0] === 0x20) return 'blocked';                                                                                   // Snapshot laden
     return RM_BLE_OK.includes(b[0]) || b[0] === 0x15;                                                                        // 0x15 = 48V
   }

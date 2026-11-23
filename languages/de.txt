@@ -156,8 +156,28 @@ tip_color_auto:Mittelwert aus Bluetooth- und MIDI-Farbe (H, S, L)
 btn_color_default:Standardfarben
 
 # Schalter und Protokollzeilen (Logs)
-confirm_phantom:48V auf {n} einschalten?\nNur wenn kein empfindliches Gerät (z. B. Bändchenmikrofon) angeschlossen ist.
 log_phantom:{n} Phantom {s}
+sec_name:Name und Icon
+row_label:Name
+row_icon:Icon
+tip_label:Name am Pult (höchstens 21 Zeichen, nur einfache Zeichen ohne Umlaute); Enter oder Feld verlassen sendet
+tip_icon:Icon-Nummer wie in der FLOW-App (0 = keins); Bilder folgen später
+log_label:{n} Name „{t}“, Icon {i}
+sec_preset:Kanal-Preset
+row_preset_ch:Datei
+btn_preset_save:Kanal speichern
+btn_preset_load:Kanal laden
+hint_preset_ch:JSON-Datei; geladen wird nur, was dieser Kanal kann. 48V wird nie geladen, Send zu MAIN bzw. Bus-Fader gehen auf –∞
+log_preset_saved:Preset von {n} gespeichert
+log_preset_loaded:Preset auf {n} geladen
+log_preset_skipped:nicht übernommen: {l}
+log_preset_item:Preset {n}: {w}
+preset_bad_file:Das ist keine Kanal-Preset-Datei dieses Tools.
+preset_wrong_kind:Die Datei ist ein Preset für {f} und passt nicht auf {t}.
+preset_kind_input:einen Eingang
+preset_kind_bus:einen Bus (MAIN/MON)
+preset_kind_fx:einen FX-Bus
+preset_48v_manual:48V bitte manuell aktivieren
 phase_inverted:invertiert
 phase_normal:normal
 log_phase:{n} Phase {s}
@@ -296,6 +316,10 @@ opt_pre:Pre
 set_usb_playback:USB/BT-Wiedergabe
 opt_phones_only:nur Phones
 opt_main_mix:Main Mix
+set_phones_tap:Kopfhörer Tap Point
+set_usb_mode:USB Modus
+opt_usb_recording:Recording (10Ch)
+opt_usb_streaming:Streaming (Main 2Ch)
 set_mon_link:Monitor Stereo-Link
 set_main_pad:Main −10 dBV Pad
 confirm_main_pad:Main-Pad umschalten ändert den Ausgangspegel um 10 dB. Fortfahren?
@@ -309,7 +333,7 @@ confirm_snapshot_ble:(Bluetooth-Slotzählung ungeprüft)
 log_snapshot_load:Snapshot {n} laden
 row_snapshots:Snapshots
 row_names:Namen
-note_global:Die Zuordnung der Einstellungs-IDs (BLE-Befehl 0x25) stammt aus der App-Bibliothek, die Wertebedeutung ist nicht überall geprüft. Snapshot 16 (Reset), Werksreset sowie Snapshot speichern/löschen fehlen bewusst.
+note_global:Die Einstellungs-IDs (BLE-Befehl 0x25) stammen aus der App-Bibliothek und sind am Pult getestet. Snapshot 16 (Reset), Werksreset sowie Snapshot speichern/löschen fehlen bewusst.
 
 # Rohbytes
 raw_global:Globale und sonstige

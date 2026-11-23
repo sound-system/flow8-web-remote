@@ -18,7 +18,7 @@ MIDI;MIDI;Low Cut (Frequenz);Eingangskanal;CC 9;"Hz laut Tabelle flow8-lowcut-ma
 MIDI;MIDI;Low Cut USB/BT;USB/BT (MIDI-Kanal 7);CC 9 bzw. BLE Typ 0x04 mit ID 6;keine Wirkung;getestet;USB/BT hat keinen Low Cut
 MIDI;MIDI;Pan;Eingangskanal;CC 10;"Wert 1-127, 64 = Mitte; Wert = round(64+Pan*63), Pan -1..+1";bestätigt;
 MIDI;MIDI;Kompressor;Eingangskanal;CC 11;Wert 0-100 entspricht Prozent (wird so gesendet);bestätigt;Im Dump als Float 0..1
-MIDI;MIDI;Phantomspeisung 48V;Kanal 1 und 2;CC 12;127 = an, 0 = aus;laut Doku;"Nur Kanal 1 und 2 per MIDI; Kanal 3 und 4 nur per Bluetooth. Wird nie automatisch gesendet"
+MIDI;MIDI;Phantomspeisung 48V;Kanal 1-4;CC 12;127 = an, 0 = aus;"Kanal 1/2 laut Doku; Kanal 3/4 ungetestet";"Die Seite sendet CC 12 auf Kanal 1-4 (Doku nennt nur 1/2). Nur von Hand, ohne Rückfrage; nie automatisch und in automatischen Tests nie gesendet"
 MIDI;MIDI;Master-Fader;MAIN, MON 1, MON 2, FX 1, FX 2;CC 7 auf dem Bus-Kanal (8-12);Pegel wie Send-Pegel;bestätigt;
 MIDI;MIDI;Limiter;MAIN, MON 1, MON 2;CC 8 auf dem Bus-Kanal (8-10);"dB = Wert/127*30-30 (-30..0); Wert = round((dB+30)/30*127)";laut Doku;
 MIDI;MIDI;Balance;MAIN, MON 1, MON 2, FX 1, FX 2;CC 10 auf dem Bus-Kanal (8-12);wie Pan: (Wert-64)/63, begrenzt auf -1..+1;"MAIN laut Doku; FX-Busse hörbar bestätigt; MON im Dump bestätigt";
@@ -34,7 +34,7 @@ MIDI;MIDI;Mute / Solo Ausgänge;MAIN, MON 1, MON 2, FX 1, FX 2;CC 5 / CC 6 auf M
 MIDI;MIDI;Snapshot laden;Global;Program Change auf MIDI-Kanal 16 (CF, Nr.);Nr. 1-15;laut Doku;Nr. 16 = Reset, wird von der Seite nie gesendet
 MIDI;MIDI;Tap Tempo;FX 2;Note On auf MIDI-Kanal 16 (9F, Note 0, Velocity 100);;bestätigt;Wirkt nur bei FX 2, Presets 1-12 (Delay, Echo)
 MIDI;MIDI;Dump-Anforderung;Global;keine MIDI-Anforderung bekannt;"Dump kommt als SysEx, wenn er in der FLOW-App ausgelöst (""MIDI dump"" > Yes) oder per Bluetooth angefordert wird (BLE 4B 01 4C)";bestätigt;
-MIDI;MIDI;Nicht per MIDI steuerbar;-;;Phase, Low Cut Ein/Aus, Phantom Kanal 3/4, Delay, FX-Routing, FX-Tempo, globale Einstellungen, Mute/Solo der Ausgänge;getestet (Suchlauf über alle Kanäle);nur per Bluetooth
+MIDI;MIDI;Nicht per MIDI steuerbar;-;;Phase, Low Cut Ein/Aus, Delay, FX-Routing, FX-Tempo, globale Einstellungen, Kanalnamen und Icons, Mute/Solo der Ausgänge;getestet (Suchlauf über alle Kanäle);nur per Bluetooth
 MIDI;SysEx;Zustand per MIDI anfordern;-;"F0 7E 7F/00/01 06 01 F7; F0 00 20 32 21 xx F7; F0 00 20 32 7F 21 xx F7; F0 00 20 32 00 21 xx F7 (xx 0-127)";keine Antwort;getestet;"Das FLOW 8 beantwortet keine SysEx-Anfrage per MIDI; Dump nur nach BLE 4B 01 4C oder MIDI dump in der App"
 SysEx-Dump;SysEx;Rahmen;Gesamt;Byte 0-4: F0 00 20 32 21 ... F7;"Länge 3068 Bytes; 00 20 32 = Herstellerkennung Behringer; Daten ab Byte 5; 3 Restbytes vor F7";bestätigt;
 SysEx-Dump;SysEx;7-Bit-Packung;Gesamt;ab Byte 5 Gruppen zu je 7 Bytes;"1 Maskenbyte + 6 Datenbytes; Bit k der Maske ist das fehlende Bit 0x80 von Datenbyte k";bestätigt;"Entpackt: 2622 Bytes, beginnen mit ""FLOW"" (ASCII)"
@@ -43,9 +43,11 @@ SysEx-Dump;SysEx;Kanal-IDs;Gesamt;;0 = Kanal 1, 1 = Kanal 2, 2 = Kanal 3, 3 = Ka
 SysEx-Dump;SysEx;Pegelmatrix;Alle;Offset 24 + 4*(16*Quelle + Ziel), float32;"dB; Diagonale Quelle = Ziel (IDs 10-15) = Master-Fader des Busses; Kopfhörer-Fader = [9][9]";bestätigt;256 Einträge
 SysEx-Dump;SysEx;Mute;Alle;Offset 1048 + ID, u8;1 = stumm;bestätigt;
 SysEx-Dump;SysEx;Solo;Alle;Offset 1064 + ID, u8;1 = an;bestätigt;
+SysEx-Dump;SysEx;Reserviert-Flag;Eingangskanäle;Offset 1080 + ID, u8;1 = gesetzt (per BLE 0x49);getestet;Keine hörbare Wirkung, kein EQ-Bypass
 SysEx-Dump;SysEx;Pan / Balance;Alle;Offset 1096 + 4*ID, float32;-1 (links) .. +1 (rechts);Kanal 4 bestätigt, Rest nach gleichem Muster;
-SysEx-Dump;SysEx;Kanalname;Alle;Offset 1164 + 26*ID, 5 ASCII-Zeichen;Text, endet bei Zeichen außerhalb 32-126;bestätigt;
+SysEx-Dump;SysEx;Kanalname;Alle;Offset 1164 + 26*ID, 22 Byte;"Text bis 21 Zeichen, endet beim ersten Byte außerhalb 32-126 (normal 0)";bestätigt;"Hinter der Null stehen Restbytes aus dem Empfangspuffer des Pults, die sich bei jedem Umbenennen (BLE 0x05) ändern; ohne Bedeutung"
 SysEx-Dump;SysEx;Icon;Alle;Offset 1164 + 26*ID - 2, u16;0 = keins;Nummerierung vermutet;
+SysEx-Dump;SysEx;Namensdatensatz Rest;Alle;Offset 1164 + 26*ID - 4, 2 Byte;Restbytes;beobachtet;Können sich beim Umbenennen ändern
 SysEx-Dump;SysEx;Eingangsblock;Kanal-IDs 0-6;Start g = 1580 + 56*ID;;;Alle folgenden Zeilen dieses Blocks relativ zu g
 SysEx-Dump;SysEx;Gain;Eingangskanal;g, float32;dB;bestätigt;
 SysEx-Dump;SysEx;Kompressor;Eingangskanal;g + 4, float32;0..1;bestätigt;
@@ -54,7 +56,7 @@ SysEx-Dump;SysEx;EQ Gain Band 1-4;Eingangskanal;g + 12 + 4*(Band-1), float32;dB;
 SysEx-Dump;SysEx;EQ Frequenz Band 1-4;Eingangskanal;g + 28 + 2*(Band-1), u16;Hz;bestätigt;Werksfrequenzen 100 / 500 / 2000 / 12000
 SysEx-Dump;SysEx;EQ Q Band 1-4;Eingangskanal;g + 36 + 4*(Band-1), float32;"Q; bei Band 1 und 4 bedeutet 0 = Shelf";bestätigt;
 SysEx-Dump;SysEx;Low Cut ein;Kanal-IDs 0-5;g - 4, u8;1 = an;bestätigt Kanal 2, 3, 5/6;
-SysEx-Dump;SysEx;Phase invertiert;Kanal-IDs 0-5;g - 3, u8;1 = an;bestätigt Kanal 2, 4;
+SysEx-Dump;SysEx;Phase invertiert;Kanal-IDs 0-6;g - 3, u8;1 = an;bestätigt Kanal 2, 4, USB/BT (1913);
 SysEx-Dump;SysEx;Phantomspeisung;Kanal-IDs 0-3;g - 2, u8;1 = an;bestätigt Kanal 1-4;
 SysEx-Dump;SysEx;Busblock;Bus-IDs 10-15;Start b = 1972 + 100*(ID-10);;;"Genutzt für MON 1, MON 2, MAIN; relativ zu b"
 SysEx-Dump;SysEx;Limiter;MON 1, MON 2, MAIN;b - 4, float32;dB (-30..0);bestätigt;
@@ -63,21 +65,26 @@ SysEx-Dump;SysEx;9-Band-EQ Frequenz;MON 1, MON 2, MAIN;b + 36 + 2*(Band-1), u16;
 SysEx-Dump;SysEx;9-Band-EQ Q;MON 1, MON 2, MAIN;b + 56 + 4*(Band-1), float32;Q (0-19,7);bestätigt;
 SysEx-Dump;SysEx;9-Band-EQ FX-Busse;FX 1, FX 2;b = 2172 / 2272, gleiches Layout;Gain, Frequenz, Q;per MIDI änderbar;Wirkt nicht hörbar, wird nicht angezeigt
 SysEx-Dump;SysEx;Delay;MON 1, MON 2, MAIN;b + 92, u16;"Samples bei 48 kHz; ms = Samples/48; Meter = ms*0,343";bestätigt;
+SysEx-Dump;SysEx;Delay obere Bytes;MON 1, MON 2, MAIN;b + 94, u16;bisher immer 0;vermutet;BLE 0x4A sendet u32
 SysEx-Dump;SysEx;FX-Block;FX 1, FX 2;Start o = 2578 + 7*k (k = 0 für FX 1, 1 für FX 2);;;relativ zu o
 SysEx-Dump;SysEx;FX Parameter 1-3;FX 1 / FX 2;o, o+1, o+2, u8;"Parameter 1: 0-100 %; Parameter 2: 0 = Wert A, 1 = Wert B; Parameter 3: 0-100 (MIDI CC 3)";"Parameter 1, 2 bestätigt; 3 Bedeutung offen";
 SysEx-Dump;SysEx;FX Preset;FX 1 / FX 2;o + 3, u8;1-basiert (1-16);bestätigt;
 SysEx-Dump;SysEx;FX an Main / MON 1 / MON 2;FX 1 / FX 2;o + 4, o + 5, o + 6, u8;1 = an;"Main und MON 1 bestätigt; MON 2 nach Muster";
 SysEx-Dump;SysEx;FX-Tempo;FX;Offset 2576, u16;BPM;bestätigt;
-SysEx-Dump;SysEx;USB/BT-Wiedergabe;Global;Offset 2569, u8;1 = nur Kopfhörer, 0 = Main-Mix;bestätigt;
+SysEx-Dump;SysEx;BT/USB-Umschaltung;Global;Offset 2568, u8;Einstellung 1;getestet;
+SysEx-Dump;SysEx;USB/BT-Wiedergabe;Global;Offset 2569, u8;1 = nur Kopfhörer, 0 = Main-Mix;bestätigt;Einstellung 2
 SysEx-Dump;SysEx;Monitor 1/2 Quelle;Global;Offset 2593, u8;0 = Monitor-Mix, 1 = USB 1/2, 2 = USB 3/4;bestätigt;
+SysEx-Dump;SysEx;USB-Modus;Global;Offset 2601, u8;0 = Recording (10 Kanäle), 1 = Streaming (Main, 2 Kanäle);getestet;Einstellung 7
 SysEx-Dump;SysEx;Schalter 0;Global;Offset 2603, u8;Routing Kanal 5/6: 1 = USB, 0 = lokale Buchsen;bestätigt;
 SysEx-Dump;SysEx;Schalter 1;Global;Offset 2604, u8;Routing Kanal 7/8: 1 = USB, 0 = lokal;bestätigt;
 SysEx-Dump;SysEx;Schalter 2;Global;Offset 2605, u8;Monitor Stereo-Link (1 = an);bestätigt;
 SysEx-Dump;SysEx;Schalter 3;Global;Offset 2606, u8;Kopfhörer-Quelle: 1 = Monitor, 0 = Main;bestätigt;
+SysEx-Dump;SysEx;Schalter 4;Global;Offset 2607, u8;Kopfhörer Tap Point bei Quelle Monitor: 0 = MON pre Fader, 1 = MON post Fader;getestet;Einstellung 13
 SysEx-Dump;SysEx;Schalter 5;Global;Offset 2608, u8;Main-Pad (1 = an);bestätigt;
 SysEx-Dump;SysEx;Schalter 6;Global;Offset 2609, u8;Monitor-Pad (1 = an);bestätigt;
-SysEx-Dump;SysEx;Schalter 8;Global;Offset 2611, u8;Monitor 1/2 Tap Point: 1 = Post, 0 = Pre;bestätigt;
-SysEx-Dump;SysEx;Schalter 4, 7, 9, 10, 11;Global;Offset 2607, 2610, 2612-2614, u8;unbekannt;offen;Die Seite warnt, wenn eines davon von 0 auf einen anderen Wert springt
+SysEx-Dump;SysEx;Schalter 8;Global;Offset 2611, u8;Monitor Tap Point (Sends der Eingänge zu den Monitor-Ausgängen, bezogen auf den Kanal-Fader): 1 = Post, 0 = Pre;getestet;Einstellung 17
+SysEx-Dump;SysEx;Schalter 7, 9, 10, 11;Global;Offset 2610, 2612-2614, u8;unbekannt;offen;Die Seite warnt, wenn eines davon von 0 auf einen anderen Wert springt
+SysEx-Dump;SysEx;Weitere unbekannte Bytes;Global;"2570-2575, 2592, 2594-2600, 2602, 2615-2621; Bus-Block ID 14 (2372-2471); g - 1 der Eingänge";unbekannt;offen;
 SysEx-Dump;SysEx;Kopf des Stroms;Gesamt;Offset 0-23;"beginnt mit ""FLOW""; Rest unbekannt";offen;
 SysEx-Dump;SysEx;Schreiben per SysEx;Gesamt;-;Nicht umgesetzt: die Seite sendet keine SysEx-Befehle an den Mixer;-;Absichtlich, nur auf ausdrückliche Zustimmung später
 Bluetooth (BLE);BLE;Dienst-UUID;Verbindung;14839ad4-8d7e-415c-9a42-167340cf2339;"Geräte-Name beginnt mit ""FLOW""";aus Mitschnitt;
@@ -95,25 +102,34 @@ Bluetooth (BLE);BLE;Low Cut;Kanal-IDs 0-5;Typ 0x04: ID, an, Hz (2 Byte, Big-Endi
 Bluetooth (BLE);BLE;Pegel (Send / Master);Quelle, Ziel;Typ 0x06: Quelle-ID, Ziel-ID, Index;"Index 0-255 über die Fader-Tabelle (größter Index mit Tabellenwert <= dB); Master: Quelle = Ziel";Codierung aus Bibliothek;Siehe flow8-fader-tabelle.csv
 Bluetooth (BLE);BLE;Mute;Alle IDs;Typ 0x08: ID, an;an = 1 / 0;Codierung aus Bibliothek;
 Bluetooth (BLE);BLE;Parametrischer EQ Band;Kanal-IDs 0-5;Typ 0x09: ID, Band, Frequenz (2 Byte, Big-Endian), Q, Gain;Band 0-3;Codierung aus Bibliothek;
-Bluetooth (BLE);BLE;Phase;Kanal-IDs 0-5;Typ 0x10: ID, an;an = 1 / 0;Codierung aus Bibliothek;
+Bluetooth (BLE);BLE;Phase;Kanal-IDs 0-6;Typ 0x10: ID, an;an = 1 / 0;Codierung aus Bibliothek;USB/BT (ID 6) getestet
 Bluetooth (BLE);BLE;FX-Parameter;FX 1 (12) / FX 2 (13);Typ 0x11: ID, P1, P2, P3, Freigabe;Freigabe-Bitmaske: 1 = Main, 2 = MON 1, 4 = MON 2;Codierung aus Bibliothek;
 Bluetooth (BLE);BLE;Kompressor;Kanal-IDs 0-5;Typ 0x13: ID, Wert;Wert = trunc(clamp(0..1)*255);Codierung aus Bibliothek;
 Bluetooth (BLE);BLE;Limiter;MAIN, MON 1, MON 2;Typ 0x14: ID, Wert;Wert wie Gain-Code: round((dB+60)*2);Codierung aus Bibliothek;Limiter-Bereich im Dump -30..0 dB
-Bluetooth (BLE);BLE;Phantomspeisung;Kanal-IDs 0-3;Typ 0x15: ID, an;an = 1 / 0;Codierung aus Bibliothek;Wird nur per Hand mit Bestätigung gesendet
+Bluetooth (BLE);BLE;Phantomspeisung;Kanal-IDs 0-3;Typ 0x15: ID, an;an = 1 / 0;Codierung aus Bibliothek;"Nur von Hand, ohne Rückfrage; nie automatisch, nie aus einem Kanal-Preset"
+Bluetooth (BLE);BLE;Kanalname und Icon (ChannelLabel);Alle IDs;"Typ 0x05: ID, Icon (2 Byte, Big-Endian), Länge, Text";Text höchstens 21 Zeichen (die Seite sendet nur ASCII 32-126);getestet (Eingänge, MON, FX);
 Bluetooth (BLE);BLE;Snapshot laden;Global;Typ 0x20: Slot;Slot 1-15;Slotzählung ungeprüft;Slot 16 (Reset) wird nie gesendet
-Bluetooth (BLE);BLE;Einstellung setzen;Global;Typ 0x25: Einstellungs-ID, 01, Wert;IDs siehe die nächsten Zeilen;Zuordnung aus Bibliothek, Wertebedeutung nicht überall geprüft;
-Bluetooth (BLE);BLE;  Einstellung 7;Global;Typ 0x25, ID 7;USB/BT-Wiedergabe: 1 = nur Kopfhörer, 0 = Main-Mix;;
+Bluetooth (BLE);BLE;Snapshot umbenennen;Global;Typ 0x32: Slot, Name;Slot 0-basiert (14 = Snapshot 15 in der App);getestet;"Keine Änderung im Dump; wird nicht verwendet"
+Bluetooth (BLE);BLE;Einstellung setzen;Global;Typ 0x25: Einstellungs-ID, 01, Wert;IDs siehe die nächsten Zeilen;Zuordnung aus Bibliothek, am Pult getestet;
+Bluetooth (BLE);BLE;  Einstellung 1;Global;Typ 0x25, ID 1;BT/USB-Umschaltung;getestet;Dump 2568
+Bluetooth (BLE);BLE;  Einstellung 2;Global;Typ 0x25, ID 2;USB/BT-Wiedergabe: 1 = nur Kopfhörer, 0 = Main-Mix;getestet;Dump 2569
+Bluetooth (BLE);BLE;  Einstellung 3;Global;Typ 0x25, ID 3;Footswitch-Modus;setzbar, nicht lesbar;"Nicht im Dump; wird nicht verwendet"
+Bluetooth (BLE);BLE;  Einstellung 5;Global;Typ 0x25, ID 5, Länge, Text;Gerätename;getestet;"Das Pult startet danach neu; wird nicht verwendet"
+Bluetooth (BLE);BLE;  Einstellung 7;Global;Typ 0x25, ID 7;USB-Modus: 0 = Recording (10 Kanäle), 1 = Streaming (Main, 2 Kanäle);getestet;Dump 2601
 Bluetooth (BLE);BLE;  Einstellung 8;Global;Typ 0x25, ID 8;Monitor 1/2 Quelle: 0 = Monitor-Mix, 1 = USB 1/2, 2 = USB 3/4;;
 Bluetooth (BLE);BLE;  Einstellung 9;Global;Typ 0x25, ID 9;Kanal 5/6 an USB 1/2 (1 = an);;
 Bluetooth (BLE);BLE;  Einstellung 10;Global;Typ 0x25, ID 10;Kanal 7/8 an USB 3/4 (1 = an);;
 Bluetooth (BLE);BLE;  Einstellung 11;Global;Typ 0x25, ID 11;Monitor Stereo-Link (1 = an);;
 Bluetooth (BLE);BLE;  Einstellung 12;Global;Typ 0x25, ID 12;Kopfhörer-Quelle: 1 = Mon 1/2, 0 = Main;;
-Bluetooth (BLE);BLE;  Einstellung 13;Global;Typ 0x25, ID 13;Monitor Tap Point: 1 = Post, 0 = Pre;;
+Bluetooth (BLE);BLE;  Einstellung 13;Global;Typ 0x25, ID 13;Kopfhörer Tap Point (Quelle Monitor): 0 = Pre, 1 = Post MON-Fader;getestet;Dump 2607
 Bluetooth (BLE);BLE;  Einstellung 14;Global;Typ 0x25, ID 14;Main -10 dBV Pad (1 = an);;Ändert den Ausgangspegel um 10 dB
 Bluetooth (BLE);BLE;  Einstellung 15;Global;Typ 0x25, ID 15;Monitor -10 dBV Pad (1 = an);;Ändert den Ausgangspegel um 10 dB
+Bluetooth (BLE);BLE;  Einstellung 17;Global;Typ 0x25, ID 17;Monitor Tap Point (Sends der Eingänge zu den Monitor-Ausgängen): 0 = Pre, 1 = Post Kanal-Fader;getestet;Dump 2611
 Bluetooth (BLE);BLE;FX-Preset;FX 1 / FX 2;Typ 0x31: ID, Preset;Preset 0-basiert (0-15);Codierung aus Bibliothek;
 Bluetooth (BLE);BLE;FX-Tempo;FX;Typ 0x40: BPM (2 Byte, Big-Endian);20-300 BPM;Codierung aus Bibliothek;
 Bluetooth (BLE);BLE;Delay;MAIN, MON 1, MON 2;Typ 0x4A: ID, Samples (4 Byte, Big-Endian);Samples bei 48 kHz;bestätigt;Eingabe in der Seite in Samples, ms oder m
+Bluetooth (BLE);BLE;Ausgangswahl am Pult (OutputChannelSelect);MAIN, MON 1, MON 2, FX;Typ 0x41: Ausgangs-ID;Schaltet SOF und die Pegelanzeige an der Hardware auf diesen Ausgang;getestet (Phones unklar);Für dieses Tool nicht nutzbar, wird nicht verwendet
+Bluetooth (BLE);BLE;ChannelReserved;Eingangskanäle;Typ 0x49: ID, 0/1;"Setzt Dump-Byte 1080 + ID; Phones, MON, FX, MAIN reagieren nicht";getestet;"EQ bleibt hörbar, also kein EQ-Bypass; g−1 wird nicht gesetzt; wird nicht verwendet"
 Bluetooth (BLE);BLE;Code: EQ-Gain;-;Byte = round(clamp(dB,-15,15)/15*127+127);"0..254; 127 = 0 dB";Codierung aus Bibliothek;
 Bluetooth (BLE);BLE;Code: Q;-;Byte aus Q;"Q <= 0: 0 (Shelf); Q < 10,7: clamp(round((Q-0,3)*10)+1, 1, 101); sonst clamp(round(Q-11)+102, 102, 255)";Codierung aus Bibliothek;
 Bluetooth (BLE);BLE;Benachrichtigungen;Mixer an Seite;Typ 0x36 / 0x27;"0x36 = Anmeldung bestätigt; 0x27 = Snapshot-Namen. Im Browser NICHT empfangbar: Merkmal hat keinen CCCD-Deskriptor (0x2902), Edge/Windows lehnen das Abonnement ab (GATT Error: Not supported). Nur die Android-App empfängt sie";"in der App bestätigt; im Browser bestätigt nicht möglich";

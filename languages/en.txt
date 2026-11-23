@@ -156,8 +156,28 @@ tip_color_auto:Average of the Bluetooth and MIDI colors (H, S, L)
 btn_color_default:Default Colors
 
 # Switches and log lines
-confirm_phantom:Turn on 48V on {n}?\nOnly if no sensitive device (e.g. a ribbon microphone) is connected.
 log_phantom:{n} phantom {s}
+sec_name:Name and Icon
+row_label:Name
+row_icon:Icon
+tip_label:Name on the mixer (up to 21 characters, plain ASCII only); Enter or leaving the field sends it
+tip_icon:Icon number as in the FLOW app (0 = none); pictures to follow
+log_label:{n} name "{t}", icon {i}
+sec_preset:Channel Preset
+row_preset_ch:File
+btn_preset_save:Save Channel
+btn_preset_load:Load Channel
+hint_preset_ch:JSON file; only what this channel supports is loaded. 48V is never loaded; the send to MAIN or the bus fader goes to –∞
+log_preset_saved:Preset of {n} saved
+log_preset_loaded:Preset loaded onto {n}
+log_preset_skipped:not applied: {l}
+log_preset_item:Preset {n}: {w}
+preset_bad_file:This is not a channel preset file of this tool.
+preset_wrong_kind:This file is a preset for {f} and does not fit {t}.
+preset_kind_input:an input
+preset_kind_bus:a bus (MAIN/MON)
+preset_kind_fx:an FX bus
+preset_48v_manual:Please turn on 48V manually
 phase_inverted:inverted
 phase_normal:normal
 log_phase:{n} phase {s}
@@ -296,6 +316,10 @@ opt_pre:Pre
 set_usb_playback:USB/BT Playback
 opt_phones_only:Phones Only
 opt_main_mix:Main Mix
+set_phones_tap:Phones Tap Point
+set_usb_mode:USB Mode
+opt_usb_recording:Recording (10Ch)
+opt_usb_streaming:Streaming (Main 2Ch)
 set_mon_link:Monitor Stereo Link
 set_main_pad:Main −10 dBV Pad
 confirm_main_pad:Switching the main pad changes the output level by 10 dB. Continue?
@@ -309,7 +333,7 @@ confirm_snapshot_ble:(Bluetooth slot numbering not verified)
 log_snapshot_load:Load snapshot {n}
 row_snapshots:Snapshots
 row_names:Names
-note_global:The mapping of the setting IDs (BLE command 0x25) comes from the app library; the meaning of the values has not been verified everywhere. Snapshot 16 (reset), factory reset and saving/deleting snapshots are left out on purpose.
+note_global:The setting IDs (BLE command 0x25) come from the app library and have been tested on the mixer. Snapshot 16 (reset), factory reset and saving/deleting snapshots are left out on purpose.
 
 # Raw bytes
 raw_global:Global and other

@@ -80,10 +80,10 @@ Machine-readable tables live next to this file:
 
 - **Safety rules (by design):**
   - Nothing is sent without a user action.
-  - 48V needs a confirmation dialog.
+  - 48V is switched by hand only, without a confirmation dialog (since this version). It is never sent automatically and never loaded from a channel preset.
   - Snapshot 16 (reset), factory reset, snapshot save/delete and SysEx writes are not implemented.
   - The checkbox *Sending enabled* blocks all output, also from phones and tablets.
-  - From phones and tablets, snapshot commands are refused (48V is allowed, with the confirmation on the device), and the PC page accepts only the message types listed in §10.
+  - From phones and tablets, snapshot commands are refused (48V is allowed), and the PC page accepts only the message types listed in §10.
 
 ## 2 Data flow
 
@@ -134,7 +134,7 @@ Machine-readable tables live next to this file:
 | 31–34 | EQ band 1–4 Q | 0…19.7, linear (§6); 0 = shelf on bands 1 and 4 | confirmed, measured on all inputs |
 | 10 | pan | 1–127, 64 = center | confirmed |
 | 11 | compressor | 0–100 (%) | confirmed |
-| 12 | 48V phantom | 127 / 0, **channels 1 and 2 only** | per docs |
+| 12 | 48V phantom | 127 / 0, channels 1–4 | ch 1/2 per docs; ch 3/4 sent by the page but untested (the docs name ch 1/2 only). Never sent by automatic tests |
 | 14–17 | send level → MON 1, MON 2, FX 1, FX 2 | level curve | per docs |
 
 **Buses** (MIDI channel 8–12)
@@ -188,7 +188,7 @@ With the monitor stereo link on (dump 2605), MIDI channel 9 and 10 each change t
 **Not available over MIDI:**
 - phase
 - low cut on/off
-- 48V on channels 3/4
+- channel names and icons
 - delay
 - FX routing and tempo
 - all global settings
@@ -220,20 +220,23 @@ These need BLE.
 | 24 + 4·(16·src + dst) | f32 | level matrix in dB, 16 × 16. Diagonal [id][id] (10–15) = bus master fader, [9][9] = headphone level | confirmed |
 | 1048 + id | u8 | mute | confirmed |
 | 1064 + id | u8 | solo | confirmed |
+| 1080 + id | u8 | "reserved" flag, set by BLE `0x49` (inputs only); no audible effect, not an EQ bypass | tested |
 | 1096 + 4·id | f32 | pan / balance −1…+1 | confirmed (Ch 4), others pattern |
-| 1164 + 26·id | 5 × ASCII | channel name, ends at a byte outside 32–126 | confirmed |
+| 1164 + 26·id | 22 bytes | channel name, up to 21 ASCII characters, ends at the first byte outside 32–126 (normally 0). The bytes after the terminator are leftovers from the mixer's receive buffer and change with every rename (BLE `0x05`); they carry no meaning | confirmed (inputs, MON, FX, USB/BT) |
 | 1164 + 26·id − 2 | u16 | icon number (0 = none) | numbering open |
+| 1164 + 26·id − 4 | 2 bytes | part of the name record; can also change on a rename (leftovers) | observed |
 
 **Input block** g = 1580 + 56·id (id 0–6)
 
 | Offset | Type | Content | Status |
 |---|---|---|---|
 | g − 4 | u8 | low cut on (id 0–5; USB/BT has no low cut, tested) | confirmed |
-| g − 3 | u8 | phase inverted (id 0–5) | confirmed |
+| g − 3 | u8 | phase inverted (id 0–6; USB/BT 1913 tested) | confirmed |
 | g − 2 | u8 | 48V (id 0–3) | confirmed (Ch 1–4) |
+| g − 1 | u8 | unknown (not jack detection, not `0x49`) | open |
 | g | f32 | gain dB | confirmed |
 | g + 4 | f32 | compressor 0…1 | confirmed |
-| g + 8 | u16 | low cut in **Hz** (20–600); id 0–5 only, on USB/BT (id 6) the bytes 1912 and 1924–1925 have no known function | confirmed, measured |
+| g + 8 | u16 | low cut in **Hz** (20–600); id 0–5 only, on USB/BT (id 6) the bytes 1912 (low cut on) and 1924–1925 have no function | confirmed, measured |
 | g + 12 + 4k | f32 | PEQ band k gain dB (k = 0–3) | confirmed |
 | g + 28 + 2k | u16 | PEQ band k frequency Hz (defaults 100 / 500 / 2000 / 12000) | confirmed |
 | g + 36 + 4k | f32 | PEQ band k Q; 0 = shelf on bands 0 and 3 | confirmed |
@@ -247,6 +250,7 @@ These need BLE.
 | b + 36 + 2k | u16 | GEQ band k frequency (defaults 63 … 16000, octave steps) | confirmed |
 | b + 56 + 4k | f32 | GEQ band k Q (0…19.7; 0 allowed, as in the app) | confirmed |
 | b + 92 | u16 | delay in samples at 48 kHz | confirmed |
+| b + 94 | u16 | upper half of the delay (BLE `0x4A` sends u32); always 0 so far | assumed |
 
 **FX block** o = 2578 + 7·k (k = 0 FX 1, 1 FX 2)
 
@@ -261,20 +265,26 @@ These need BLE.
 
 | Offset | Content | Status |
 |---|---|---|
-| 2569 | USB/BT playback: 1 = phones only, 0 = main mix | confirmed |
+| 2568 | BT/USB switch (setting 1) | tested |
+| 2569 | USB/BT playback (setting 2): 1 = phones only, 0 = main mix | confirmed |
 | 2593 | Monitor 1/2 source: 0 monitor mix, 1 USB 1/2, 2 USB 3/4 | confirmed |
 | 2603 | Ch 5/6 source: 1 = USB, 0 = local jacks | confirmed |
 | 2604 | Ch 7/8 source: 1 = USB, 0 = local | confirmed |
 | 2605 | monitor stereo link | confirmed |
+| 2601 | USB mode (setting 7): 0 = recording (10 channels), 1 = streaming (main, 2 channels) | tested |
 | 2606 | headphone source: 1 = monitor, 0 = main | confirmed |
+| 2607 | phones tap point (setting 13): with source monitor, 0 = MON pre fader, 1 = MON post fader | tested |
 | 2608 | main −10 dBV pad | confirmed |
 | 2609 | monitor −10 dBV pad | confirmed |
-| 2611 | monitor tap point: 1 = post, 0 = pre | confirmed |
-| 2607, 2610, 2612–2614 | unknown flags (watched by the alarm) | open |
+| 2611 | monitor tap point (setting 17): sends of the inputs to the monitor outputs, pre / post channel fader; 1 = post, 0 = pre | tested |
+| 2610, 2612–2614 | unknown flags (watched by the alarm) | open |
+| 2570–2575, 2592, 2594–2600, 2602, 2615–2621 | unknown | open |
 
-**Not decoded:** footswitch mode, the rest of the header. Preset names are not in the dump; the page uses the names from the FLOW app (§3).
+**Not decoded:** footswitch mode (setting 3 can be set but is not in the dump), snapshot names (not in the dump), the bus block of ID 14 (2372–2471, purpose unknown), the rest of the header. Preset names are not in the dump; the page uses the names from the FLOW app (§3).
 
 ## 5 Bluetooth LE protocol
+
+Tested with FLOW 8 firmware **v11749**, Bluetooth API version **v9** (shown under device info in the FLOW app). Other firmware or API versions may behave differently.
 
 **Connection** (library, verified in use)
 
@@ -320,26 +330,37 @@ The app redraws meters and the gain-reduction ring every 100 ms from the last va
 | `0x11` | id, p1, p2, p3, enable bits (1 Main, 2 Mon 1, 4 Mon 2) | FX parameters and routing |
 | `0x13` | id, 0–255 | compressor |
 | `0x14` | id, gain code | limiter |
-| `0x15` | id, 0/1 | 48V (only by hand, with confirmation) |
+| `0x15` | id, 0/1 | 48V (only by hand) |
+| `0x05` | id, icon u16, length, text (≤ 21 ASCII) | channel name and icon (ChannelLabel), inputs and buses; tested |
 | `0x20` | slot 1–15 | load snapshot (slot numbering unverified; 16 never sent) |
+| `0x32` | slot **0-based**, name | rename snapshot (slot 14 = snapshot 15 in the app); no change in the dump. Not used by this tool |
 | `0x25` | setting id, 0x01, value | global setting (table below) |
 | `0x31` | id, preset **0-based** | FX preset |
 | `0x40` | BPM u16 | FX tempo |
 | `0x4A` | id, samples u32 | delay (confirmed) |
+| `0x41` | output id | OutputChannelSelect: switches SOF and the level meters **on the mixer hardware** to this output (tested: MAIN, MON 1/2, FX; phones unclear). Not used by this tool |
+| `0x49` | id, 0/1 | ChannelReserved: sets dump byte 1080 + id, inputs only (phones, MON, FX, MAIN do not react). EQ stays audible, so it is not an EQ bypass; g−1 is not affected. Not used by this tool |
 
-**Settings `0x25`** (ID mapping from the library; values checked against the dump)
+**Settings `0x25`** (ID mapping from the library; tested on the mixer)
 
-| ID | Setting |
-|---|---|
-| 7 | USB/BT playback: 1 = phones only, 0 = main mix |
-| 8 | monitor 1/2 source: 0 / 1 / 2 |
-| 9 | Ch 5/6 → USB 1/2 |
-| 10 | Ch 7/8 → USB 3/4 |
-| 11 | monitor stereo link |
-| 12 | headphone source: 1 = Mon 1/2, 0 = Main |
-| 13 | monitor tap point: 1 = post, 0 = pre |
-| 14 | main −10 dBV pad |
-| 15 | monitor −10 dBV pad |
+| ID | Setting | Dump |
+|---|---|---|
+| 1 | BT/USB switch | 2568 |
+| 2 | USB/BT playback: 1 = phones only, 0 = main mix | 2569 |
+| 3 | footswitch mode: can be set, not readable (not in the dump); not used by this tool | – |
+| 5 | device name (text); works, **the mixer restarts afterwards**; not used by this tool | – |
+| 7 | USB mode: 0 = recording (10 channels), 1 = streaming (main, 2 channels) | 2601 |
+| 8 | monitor 1/2 source: 0 / 1 / 2 | 2593 |
+| 9 | Ch 5/6 → USB 1/2 | 2603 |
+| 10 | Ch 7/8 → USB 3/4 | 2604 |
+| 11 | monitor stereo link | 2605 |
+| 12 | headphone source: 1 = Mon 1/2, 0 = Main | 2606 |
+| 13 | phones tap point (source monitor): 0 = pre, 1 = post MON fader | 2607 |
+| 14 | main −10 dBV pad | 2608 |
+| 15 | monitor −10 dBV pad | 2609 |
+| 17 | monitor tap point (input sends to the monitor outputs): 0 = pre, 1 = post channel fader | 2611 |
+
+Snapshot names cannot be read in the browser: the mixer sends them only as a notification (type `0x27`), which the browser cannot subscribe to.
 
 ## 6 Conversions and curves
 
@@ -439,7 +460,7 @@ The UI accepts samples, ms or m and rounds to whole samples (max 65535 ≈ 1365 
   - PEQ bands are peaking filters.
   - Q is continuous 0…10.7. Q = 0 is a shelf only on the outer bands (PEQ bands 0 and 3, GEQ bands 0 and 8; the GEQ shelf is drawn only, not verified on the mixer). Other bands with Q = 0 are drawn with the smallest Q the current route can send (`qMin`: MIDI CC 1 = 0.16, BLE code 1 = 0.3).
   - The sum of all bands is drawn over 20 Hz – 20 kHz (log), ±18 dB.
-  - **Low cut** (channels, when on) is added to the curve as a high-pass: `−10·log10(1 + (fc/f)^(2n))` with n = slope / 6. The slope is **provisional 12 dB/octave** (`LC_SLOPE`), the real value is still to be measured. It also appears in the small EQ tiles of the strips.
+  - **Low cut** (channels, when on) is added to the curve as a high-pass: `−10·log10(1 + (fc/f)^(2n))` with n = slope / 6. The slope is **12 dB/octave** (`LC_SLOPE`), measured: with 100 Hz set, 100 Hz is at −3 dB and 75 Hz at −6 dB (model −6.2 dB). It also appears in the small EQ tiles of the strips.
 - **Editing:**
   - Drag a point: frequency (x) and gain (y). Over MIDI, frequency and Q snap to the 128 CC steps; over BLE they are exact.
   - Mouse wheel on a point: Q × 1.1 per step, Shift for fine steps (`qStep`). Below `qMin` it jumps to 0, from 0 upwards to `qMin`; over MIDI every step moves at least one CC step. The point under the mouse becomes the selected band.
@@ -452,12 +473,16 @@ The UI accepts samples, ms or m and rounds to whole samples (max 65535 ≈ 1365 
 ### Detail tabs (layout)
 
 - **Channel tabs:** All Parameters, EQ, Dynamics, Sends, Raw Bytes.
+  - **All Parameters** starts with *Name and Icon* (also for the buses): text field (up to 21 ASCII characters, `labelClean`) and icon number (0–65535, numbers only until pictures exist). Enter or leaving a field sends BLE `0x05`. Bus names appear under the bus strip like channel names.
+  - **All Parameters** ends with *Channel Preset*: *Save Channel* writes a JSON file, *Load Channel* reads one (file picker, also on tablets). See below.
   - **EQ:** curve with RTA, band table, low cut row below the table.
-  - **Dynamics:** left the gain knob (−20…60 dB, 0.1 dB per px) with a tall input meter; next to it the compressor knob (0…100 %, 0.25 % per px) with its transfer curve (same drawing as the strip tile); right two large buttons: phase and 48V (ch 1–4) or USB routing (ch 5/6, 7/8). Double-click / double-tap on a knob resets it (gain 0 dB, compressor 0 %).
+  - **Dynamics:** left the gain knob (−20…60 dB, 0.1 dB per px) with a tall input meter; next to it the compressor knob (0…100 %, 0.25 % per px) with its transfer curve (same drawing as the strip tile); right two large buttons: phase (all inputs including USB/BT) and 48V (ch 1–4, MIDI CC 12 or BLE, no confirmation) or USB routing (ch 5/6, 7/8). Double-click / double-tap on a knob resets it (gain 0 dB, compressor 0 %).
   - **Sends:** wider sliders (up to 460 px or half the screen). On tablets they work relatively like the faders (see §10).
 - **Output tabs (MAIN, MON 1/2):** 9-band EQ; Limiter & Delay with the output meter, the limiter knob (−30…0 dB, 0.075 dB per px, double-tap = 0 dB) and its curve. Delay: samples / ms / m fields next to the limiter in one box with a delay knob (PC and tablet; linear, 3.2 samples per px ≈ 15 px per ms, `DLY_PER_PX`, double-click / double-tap = 0). MON 1/2 have no USB track, so their meter stays empty.
 - **Effect tab (FX 1/2):** presets show the names from the FLOW app (`FX_PRESETS`). Parameter 1 is labelled with its preset name (`fxNice`: DECAY → Decay) and has a number field (%). Parameter 2 is called *Variant*: a left/right switch between the two value names of the preset (left = A = 0, right = B = 1). Parameter 3 (0–100) goes over MIDI CC 3 or BLE. Returns to MON 1/2 take typed dB values like the sends. Tempo row (BPM + tap) only on FX 2, disabled for presets 13–16. MIDI uses channels 14 / 15.
 - **Bus strips:** every bus has a balance control. MAIN goes over MIDI or BLE; MON 1/2 and FX 1/2 only over MIDI CC 10 (red). The bus whose sends the channel faders show (`selMix`, sends on fader) has the label *SOF Target* (`sof_target`) in the top row where channels have 48V / phase / HPF; long translations wrap to two lines inside the 24 px row.
+- **Channel preset (JSON):** `{"type": "flow8-channel-preset", "version": 1, "kind": "input" | "bus" | "fx", …}`. Saved is everything the page can set: name, icon, and for inputs gain, compressor, low cut on/Hz, phase, 48V, USB routing (5/6, 7/8), pan, the four PEQ bands and all sends; for MAIN/MON fader, balance, limiter, delay and the 9-band EQ; for FX fader, balance, preset, parameters 1–3, routing and the returns to MON 1/2. Mute and solo are not saved. Loading works only onto the same kind (`input` onto inputs, `bus` onto MAIN/MON 1/MON 2, `fx` onto FX 1/2) and sets only what the target supports (e.g. no gain and low cut on USB/BT, USB routing only on 5/6 and 7/8; preset and parameters only on the same FX slot). **48V is never loaded**; if the file has 48V on, the page shows *Please turn on 48V manually*. On inputs the send to MAIN is set to −∞, on buses the master fader. Every value goes out like the matching control (MIDI or BLE by the purple switch; BLE-only values need Bluetooth).
+- **Global window:** slide switches *Headphone Source* (12), *Phones Tap Point* (13), *Monitor Tap Point* (17), *USB/BT Playback* (2), *USB Mode* (7, left *Recording (10Ch)*, right *Streaming (Main 2Ch)*). All tap point switches have Pre on the left and Post on the right.
 - Knobs: `knob(min, max, val, fmt, onInput, kind, perPx, def)`; `def` enables the double-click / double-tap reset.
 
 ## 9 Language files
@@ -511,7 +536,7 @@ The same page, opened from another device through the computer's network address
 
 | Accepted | Refused as “only on the PC” | Everything else |
 |---|---|---|
-| MIDI CC (`Bn`, 3 bytes, incl. CC 12 = 48V), Program Change `C0`–`CE` (FX presets), `9F` (tap tempo); BLE packets with valid checksum of types `00 01 02 03 04 06 08 09 10 11 13 14 15 25 31 40 4A`; RTA settings with valid values | `CF` (snapshot), BLE `20` (snapshot) | refused (SysEx, other status bytes, bad checksums) |
+| MIDI CC (`Bn`, 3 bytes, incl. CC 12 = 48V), Program Change `C0`–`CE` (FX presets), `9F` (tap tempo); BLE packets with valid checksum of types `00 01 02 03 04 05 06 08 09 10 11 13 14 15 25 31 40 4A` (up to 12 bytes, `05` up to 28); RTA settings with valid values | `CF` (snapshot), BLE `20` (snapshot) | refused (SysEx, other status bytes, bad checksums) |
 
 **Remote window** (PC only, header button *Remote*, green outline while on): switch *Allow remote control*, default **off**; while off the server refuses every device with 403 and header `X-F8: off` (the tablet shows “switched off on the PC”), and switching off closes the open event streams and waiting state requests at once. For every address the window draws a **QR code** (built-in encoder: byte mode, error correction M, versions 1–10, after Project Nayuki, MIT) that opens exactly that address including `?code=`.
 
@@ -533,9 +558,8 @@ The same page, opened from another device through the computer's network address
 - **Server:** `flow8-server.ps1` is untested on real Windows.
 - **Tablet interface:** tested only with a simulated server and browser. In MIDI-only operation without dumps, the PC and the devices do not learn each other's changes until the next dump.
 - **BLE encodings:** most come from the library and were verified in use, not byte by byte. Values that matter are documented with their status in the protocol CSV.
-- **Low cut slope:** drawn with a provisional 12 dB/octave until the real value is measured.
 - **Only tested on channel 1:** low cut mapping and BLE low cut. Other channels follow the same layout. USB/BT has no low cut (tested); the page does not offer one there.
-- **Unverified:** snapshot slot numbering over BLE, the meaning of FX parameter 3, Program Change above 16 on the FX channels, BLE balance for MON and FX buses (the page uses MIDI there), icon numbers, the unknown flag bytes and the header. Also unverified: whether the BLE login key is identical on every unit.
+- **Unverified:** snapshot slot numbering over BLE, the meaning of FX parameter 3, Program Change above 16 on the FX channels, BLE balance for MON and FX buses (the page uses MIDI there), icon numbers, MIDI CC 12 on channels 3/4, the unknown flag bytes and the header. Also unverified: whether the BLE login key is identical on every unit.
 - **Not implemented on purpose:** writing state via SysEx, snapshot save/delete, reset, factory reset.
 - **Tested setup:** Windows 10 with Edge. macOS and Linux are untested, and so is more than one FLOW 8 at a time.
 - **Help wanted:** if the unknown-byte warning appears, a short note of what you did on the mixer helps to map the remaining bytes. Please open an issue.

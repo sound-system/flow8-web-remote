@@ -70,7 +70,7 @@ The FLOW 8 receives MIDI over **USB**. The channel numbers below are the usual 1
 | 9 | low cut frequency | 20–600 Hz in 128 steps; ch 1–4, 5/6, 7/8 (USB/BT has no low cut) | confirmed, all 128 values measured |
 | 10 | pan | 0 = left, 64 = center, 127 = right | confirmed |
 | 11 | compressor | 0–100 % | confirmed |
-| 12 | 48V phantom power | 127 on, 0 off; **ch 1 and 2 only** | per docs |
+| 12 | 48V phantom power | 127 on, 0 off; ch 1–4 | ch 1/2 per docs; ch 3/4 untested (the docs name ch 1/2 only) |
 | 14 | send to MON 1 | level curve | per docs |
 | 15 | send to MON 2 | level curve | per docs |
 | 16 | send to FX 1 | level curve | per docs |
@@ -174,7 +174,7 @@ These functions have no MIDI message (tested with a search over all channels). T
 
 - phase invert
 - low cut on/off
-- 48V on channels 3 and 4
+- channel names and icons
 - delay of MAIN and the monitors
 - FX routing (to Main / Mon 1 / Mon 2) and FX tempo in BPM
 - mute and solo of the output buses

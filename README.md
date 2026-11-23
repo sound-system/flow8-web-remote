@@ -39,12 +39,14 @@ Unterschiede zur heruntergeladenen Version:
 
 - Kanalzüge, Busse und Main: Fader, Mute, Solo, Pan/Balance, Gain, Kompressor, Low Cut, Phase, EQ (Gain, Frequenz und Güte auch per MIDI), Sends, Delay, Limiter
 - Effekte (FX 1 / FX 2) mit den Preset-Namen aus der FLOW-App, und Snapshots 1–15
+- Kanal- und Busnamen mit Icon-Nummer ändern, **Kanal-Presets** als Datei speichern und auf andere Kanäle laden
+- Globale Einstellungen wie USB-Modus (Recording/Streaming), Tap Points für Monitor und Kopfhörer, Pads, Routing
 - Steuerung per **MIDI (USB)** und **Bluetooth**; Farben zeigen, welcher Weg für welches Element gilt
 - Pegelanzeigen und **Echtzeit-Analyzer (RTA)** über die USB-Audioverbindung (Windows). Gemessen dort, wo das FLOW 8 seine USB-Aufnahmespuren abgreift: Eingangskanäle direkt nach dem Gain ohne Low Cut und EQ, Main ohne Main-EQ
 - Mehrere Sprachen, eigene Farben
 - **Tablet-Oberfläche** (Windows-PC als Brücke): eigene Mischpult-Ansicht für Tablets im Querformat, ohne App, optional mit Zugangscode (siehe unten)
 
-**Sicherheitsregeln:** Es wird nichts automatisch verstellt, die Seite sendet nur, was du bedienst. 48V nur von Hand mit Rückfrage. Reset, Werksreset und Snapshot speichern/löschen gibt es bewusst nicht.
+**Sicherheitsregeln:** Es wird nichts automatisch verstellt, die Seite sendet nur, was du bedienst. 48V nur von Hand, nie automatisch und nie aus einem Kanal-Preset. Reset, Werksreset und Snapshot speichern/löschen gibt es bewusst nicht.
 
 ## Sprachen
 
@@ -67,7 +69,7 @@ Während die Seite über `start-mixer.bat` am PC läuft, öffnet jedes Tablet (a
 ![Tablet: Mixer-Ansicht](images/tablet-mixer.png)
 
 - **Mixer-Ansicht:** alle Kanäle und der Master ohne Scrollen, oben die Mixe MAIN, MON 1/2, FX 1/2 (bei MON und FX zeigen die Fader die Sends). Fader und Pan sind fein untersetzt und springen nicht: überall anfassen, nur die Bewegung zählt; mehrere Finger gleichzeitig gehen. Pan doppelt tippen = Mitte.
-- **Kanal-Ansicht:** Kanalnamen antippen. EQ mit Low Cut und RTA, Dynamik (Gain mit Eingangsmeter, Kompressor, Phase, 48V), Sends; bei den Ausgängen Limiter und Delay.
+- **Kanal-Ansicht:** Kanalnamen antippen. Name und Icon, EQ mit Low Cut und RTA, Dynamik (Gain mit Eingangsmeter, Kompressor, Phase, 48V), Sends; bei den Ausgängen Limiter und Delay; unten Kanal-Preset speichern/laden.
 - **Oben:** RTA-Einstellungen (immer gleich wie am PC), Global, Vollbild und die normale Vollansicht.
 
 ![Tablet: Kanal-Ansicht mit EQ und RTA](images/tablet-channel.png)
@@ -141,12 +143,14 @@ Differences to the downloaded version:
 
 - Channel strips, buses and main: faders, mute, solo, pan/balance, gain, compressor, low cut, phase, EQ (gain, frequency and Q also over MIDI), sends, delay, limiter
 - Effects (FX 1 / FX 2) with the preset names from the FLOW app, and snapshots 1–15
+- Rename channels and buses with an icon number, save **channel presets** to a file and load them onto other channels
+- Global settings such as USB mode (recording/streaming), tap points for monitor and phones, pads, routing
 - Control via **MIDI (USB)** and **Bluetooth**; colors show which route each control uses
 - Level meters and **real-time analyzer (RTA)** over the USB audio connection (Windows). Measured where the FLOW 8 taps its USB recording tracks: input channels right after the gain without low cut and EQ, main without the main EQ
 - Several languages, custom colors
 - **Tablet interface** (Windows computer as the bridge): a mixing-desk view for tablets in landscape, no app, optional access code (see below)
 
-**Safety rules:** nothing is changed automatically; the page only sends what you operate. 48V only by hand, with confirmation. Reset, factory reset and saving/deleting snapshots are deliberately left out.
+**Safety rules:** nothing is changed automatically; the page only sends what you operate. 48V only by hand, never automatically and never from a channel preset. Reset, factory reset and saving/deleting snapshots are deliberately left out.
 
 ## Languages
 
@@ -169,7 +173,7 @@ While the page runs on the computer via `start-mixer.bat`, any tablet (7" and up
 ![Tablet: mixer view](images/tablet-mixer.png)
 
 - **Mixer view:** all channels and the master without scrolling, mixes MAIN, MON 1/2, FX 1/2 at the top (for MON and FX the faders show the sends). Faders and pan are finely geared and never jump: touch anywhere, only the movement counts; several fingers at once work. Double-tap pan = center.
-- **Channel view:** tap a channel name. EQ with low cut and RTA, Dynamics (gain with input meter, compressor, phase, 48V), Sends; for the outputs limiter and delay.
+- **Channel view:** tap a channel name. Name and icon, EQ with low cut and RTA, Dynamics (gain with input meter, compressor, phase, 48V), Sends; for the outputs limiter and delay; at the bottom save/load a channel preset.
 - **At the top:** RTA settings (always the same as on the computer), Global, Fullscreen and the normal Full View.
 
 ![Tablet: channel view with EQ and RTA](images/tablet-channel.png)
