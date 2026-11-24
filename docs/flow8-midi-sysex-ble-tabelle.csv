@@ -1,6 +1,6 @@
 ﻿Bereich;Weg;Funktion;Ziel;Nachricht / Offset;Wert und Umrechnung;Status;Anmerkung
-MIDI;MIDI;Kanalzuordnung;Eingangskanäle;MIDI-Kanal = ID+1;Kanal 1 = MIDI 1, Kanal 2 = 2, Kanal 3 = 3, Kanal 4 = 4, Kanal 5/6 = 5, Kanal 7/8 = 6, USB/BT = 7;laut Doku;
-MIDI;MIDI;Kanalzuordnung;Busse;MIDI-Kanal 8-12;MAIN = 8, MON 1 = 9, MON 2 = 10, FX 1 = 11, FX 2 = 12;laut Doku;
+MIDI;MIDI;Kanalzuordnung;Eingangskanäle;MIDI-Kanal = ID+1;Kanal 1 = MIDI 1, Kanal 2 = 2, Kanal 3 = 3, Kanal 4 = 4, Kanal 5/6 = 5, Kanal 7/8 = 6, USB/BT = 7;getestet;
+MIDI;MIDI;Kanalzuordnung;Busse;MIDI-Kanal 8-12;MAIN = 8, MON 1 = 9, MON 2 = 10, FX 1 = 11, FX 2 = 12;getestet;
 MIDI;MIDI;Kanalzuordnung;FX-Slots / Global;MIDI-Kanal 14, 15, 16;14 = FX 1 (Parameter, Preset), 15 = FX 2, 16 = global (Snapshots, FX-Mute, Tap Tempo);getestet;Die Behringer-Doku nennt 13 / 14, das ist falsch
 MIDI;MIDI;Kanalzuordnung;ungenutzt;MIDI-Kanal 13;keine Wirkung (alle CC, Program Change, Noten, Pitch Bend, Pressure getestet);getestet;
 MIDI;MIDI;Gain EQ-Band 1-4;Eingangskanal;Control Change 1-4 (B0+Kanal-1, CC, Wert);"Wert 1-127; 64 = 0 dB, ±15 dB: dB = (Wert-64)*15/63; Wert = round(64+dB*63/15)";laut Doku;
@@ -91,7 +91,7 @@ Bluetooth (BLE);BLE;Dienst-UUID;Verbindung;14839ad4-8d7e-415c-9a42-167340cf2339;
 Bluetooth (BLE);BLE;Merkmal-UUID;Verbindung;0034594a-a8e7-4b1a-a6b1-cd5243059a57;"Schreiben mit Antwort; Benachrichtigungen aktivieren";aus Mitschnitt;
 Bluetooth (BLE);BLE;Paketaufbau;Alle;[Typ, 01, Nutzdaten..., Prüfsumme];Prüfsumme = Summe aller vorherigen Bytes mod 256;bestätigt;
 Bluetooth (BLE);BLE;Anmeldung;Verbindung;39 01 FD 06 2B 06 39 F1 7F E7 B7 27 8B 8F 35 5A 49 5C 2A;"Fester Schlüssel; Antwort-Benachrichtigung Typ 0x36 = Anmeldung bestätigt";aus Mitschnitt;Ob der Schlüssel bei jedem FLOW 8 gleich ist, ist ungeprüft
-Bluetooth (BLE);BLE;Session-Start;Verbindung;37 01 38;;aus Mitschnitt;
+Bluetooth (BLE);BLE;Mixer-Zustand anfordern (GetMixerState);Verbindung;37 01 38;Antwort Typ 0x38 (MixerState), im Browser nicht empfangbar;aus Mitschnitt, Bedeutung aus Bibliothek;Wird nach der Anmeldung gesendet
 Bluetooth (BLE);BLE;Snapshot-Namen anfordern;Verbindung;07 01 08;Antwort Typ 0x27: Namen, je mit Längenbyte, bis zu 15. Im Browser nicht empfangbar (siehe Benachrichtigungen), wird nicht gesendet;aus Mitschnitt;
 Bluetooth (BLE);BLE;Dump anfordern;Verbindung;4B 01 4C;Der Mixer sendet danach den SysEx-Dump über MIDI-USB;bestätigt;Darum muss MIDI mit aktiv sein, um den Zustand zu sehen
 Bluetooth (BLE);BLE;Pan / Balance;Alle IDs;Typ 0x00: ID, Pan;Pan = trunc(clamp(-1..1)*127+127);Codierung aus Bibliothek;

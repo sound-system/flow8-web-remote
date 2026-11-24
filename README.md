@@ -19,7 +19,7 @@ Du brauchst: das FLOW 8, ein USB-Kabel und einen PC mit Edge oder Chrome.
 3. **Anschließen:** FLOW 8 einschalten und per USB mit dem PC verbinden.
 4. **Starten:**
    - **Windows:** `start-mixer.bat` doppelklicken. Edge öffnet sich mit der Seite. Warnt Windows, auf **Weitere Informationen** → **Trotzdem ausführen** klicken (die Datei ist lesbarer Klartext).
-   - **Mac / Linux:** `flow8-mixer-ble.html` mit Chrome oder Edge öffnen (Rechtsklick → Öffnen mit). Hier fehlen nur die Audio-Anzeigen (Pegel und RTA).
+   - **Mac / Linux:** `flow8-mixer-ble.html` mit Chrome oder Edge öffnen (Rechtsklick → Öffnen mit). Hier fehlen die Audio-Anzeigen (Pegel und RTA) und die Tablet-Fernsteuerung; andere Sprachen als Englisch über **Sprachdatei laden…**.
 5. **Erlauben:** Fragt der Browser nach MIDI-Zugriff, auf **Zulassen** klicken. Dann einmal irgendwo auf die Seite klicken, im Bluetooth-Fenster das **FLOW 8** wählen und **Koppeln**.
 6. **Fertig:** Sobald der Mixerzustand angekommen ist, werden die Regler freigeschaltet.
 
@@ -81,18 +81,18 @@ Während die Seite über `start-mixer.bat` am PC läuft, öffnet jedes Tablet (a
 3. Am PC **Remote** öffnen und **Fernsteuerung erlauben** einschalten (ist anfangs aus).
 4. Den angezeigten QR-Code mit der Kamera des Tablets scannen oder die Adresse eintippen (z. B. `http://192.168.1.20:8000/flow8-mixer-ble.html?code=…`).
 
-**Zugangscode:** Ist die Fernsteuerung aus, kommt kein Gerät herein, und verbundene werden sofort getrennt. Standardmäßig verlangt der PC einen Code; er steckt in der angezeigten Adresse und wird pro Gerät nur einmal gebraucht. **Neuer Code** sperrt alle bisherigen Geräte aus. Ohne Code kann jedes Gerät im WLAN steuern. Die Einstellung wird gespeichert. **Snapshots** gehen bewusst nur am PC; 48V geht mit Rückfrage auch am Tablet.
+**Zugangscode:** Ist die Fernsteuerung aus, kommt kein Gerät herein, und verbundene werden sofort getrennt. Standardmäßig verlangt der PC einen Code; er steckt in der angezeigten Adresse und wird pro Gerät nur einmal gebraucht. **Neuer Code** sperrt alle bisherigen Geräte aus. Ohne Code kann jedes Gerät im WLAN steuern. Die Einstellung wird gespeichert. **Snapshots** gehen bewusst nur am PC; 48V geht auch am Tablet.
 
 ## Bewusst simpel und im Klartext
 
 - **Eine HTML-Datei**, kein Build-Schritt, keine Pakete, keine Abhängigkeiten. Alles (auch `start-mixer.bat`, der Server `flow8-server.ps1` und die Sprachdateien) ist lesbarer Klartext.
-- **Kein Internet:** Die Seite lädt nichts aus dem Internet und sendet nichts nach außen. Der Mini-Server ist nur im eigenen WLAN erreichbar: Port 8000 für Tablets und Handys (mit Zugangscode, siehe oben). Der Server beendet sich selbst, wenn die Seite geschlossen wird.
+- **Kein Internet:** Die heruntergeladene Seite lädt nichts aus dem Internet; keine Version sendet etwas nach außen. Der Mini-Server ist nur im eigenen WLAN erreichbar: Port 8000 für Tablets und Handys (mit Zugangscode, siehe oben). Der Server beendet sich selbst, wenn die Seite geschlossen wird.
 - **Sprachdateien sind reiner Text**, sie werden nie als Code ausgeführt.
 - Einstellungen liegen nur im Speicher deines Browsers.
 
 ## Mehr Infos
 
-- **MIDI-Implementierung des FLOW 8 (Englisch), vollständig und geprüft:** [`docs/FLOW8-MIDI-Implementation.md`](docs/FLOW8-MIDI-Implementation.md), auch als Webseite: [letsketchup.github.io/flow8-web-remote](https://letsketchup.github.io/flow8-web-remote/)
+- **MIDI-Implementierung des FLOW 8 (Englisch), am Pult geprüft:** [`docs/FLOW8-MIDI-Implementation.md`](docs/FLOW8-MIDI-Implementation.md), auch als Webseite: [letsketchup.github.io/flow8-web-remote](https://letsketchup.github.io/flow8-web-remote/)
 - **Technisches Handbuch (Englisch):** [`docs/MANUAL.md`](docs/MANUAL.md) – MIDI, SysEx-Dump, Bluetooth, Tablet-Oberfläche, Kurven und Umrechnungen, Audio/RTA, Sprachdateien
 - Bedienungsanleitung für Einsteiger (PDF, Englisch): [`FLOW8-Web-Remote-User-Manual.pdf`](FLOW8-Web-Remote-User-Manual.pdf)
 - Für Entwickler: Protokoll-Tabelle [`docs/flow8-midi-sysex-ble-tabelle.csv`](docs/flow8-midi-sysex-ble-tabelle.csv), Fader- und Low-Cut-Tabellen in [`docs/`](docs/)
@@ -123,7 +123,7 @@ You need: the FLOW 8, a USB cable and a computer with Edge or Chrome.
 3. **Connect:** switch on the FLOW 8 and connect it to the computer via USB.
 4. **Start:**
    - **Windows:** double-click `start-mixer.bat`. Edge opens with the page. If Windows shows a warning, click **More info** → **Run anyway** (the file is readable plain text).
-   - **Mac / Linux:** open `flow8-mixer-ble.html` with Chrome or Edge (right-click → Open With). Only the audio displays (meters and RTA) are missing here.
+   - **Mac / Linux:** open `flow8-mixer-ble.html` with Chrome or Edge (right-click → Open With). The audio displays (meters and RTA) and the tablet remote are missing here; languages other than English via **Load Language File…**.
 5. **Allow:** when the browser asks for MIDI access, click **Allow**. Then click anywhere on the page once, pick the **FLOW 8** in the Bluetooth window and click **Pair**.
 6. **Done:** as soon as the mixer state has arrived, the controls are unlocked.
 
@@ -185,18 +185,18 @@ While the page runs on the computer via `start-mixer.bat`, any tablet (7" and up
 3. On the computer, open **Remote** and switch on **Allow remote control** (off at first).
 4. Scan the QR code shown there with the tablet's camera, or type the address (e.g. `http://192.168.1.20:8000/flow8-mixer-ble.html?code=…`).
 
-**Access code:** with remote control switched off, no device gets in and connected ones are cut off at once. By default the computer requires a code; it is part of the address shown and is needed only once per device. **New Code** locks out all devices that used the old one. Without a code, any device in the network can control the mixer. The setting is remembered. **Snapshots** deliberately work only on the computer; 48V works on the tablet too, with a confirmation.
+**Access code:** with remote control switched off, no device gets in and connected ones are cut off at once. By default the computer requires a code; it is part of the address shown and is needed only once per device. **New Code** locks out all devices that used the old one. Without a code, any device in the network can control the mixer. The setting is remembered. **Snapshots** deliberately work only on the computer; 48V works on the tablet too.
 
 ## Deliberately simple and plain text
 
 - **One HTML file**, no build step, no packages, no dependencies. Everything (including `start-mixer.bat`, the server `flow8-server.ps1` and the language files) is readable plain text.
-- **No internet:** the page loads nothing from the internet and sends nothing outside. The mini server is reachable only in your own network: port 8000 for phones and tablets (with access code, see above). The server shuts itself down when the page is closed.
+- **No internet:** the downloaded page loads nothing from the internet; no version sends anything outside. The mini server is reachable only in your own network: port 8000 for phones and tablets (with access code, see above). The server shuts itself down when the page is closed.
 - **Language files are plain text**; they are never executed as code.
 - Settings are stored only in your browser.
 
 ## More information
 
-- **Behringer FLOW 8 MIDI implementation chart, complete and tested:** [`docs/FLOW8-MIDI-Implementation.md`](docs/FLOW8-MIDI-Implementation.md), also as a web page: [letsketchup.github.io/flow8-web-remote](https://letsketchup.github.io/flow8-web-remote/)
+- **Behringer FLOW 8 MIDI implementation chart, tested on the mixer:** [`docs/FLOW8-MIDI-Implementation.md`](docs/FLOW8-MIDI-Implementation.md), also as a web page: [letsketchup.github.io/flow8-web-remote](https://letsketchup.github.io/flow8-web-remote/)
 - **Technical manual:** [`docs/MANUAL.md`](docs/MANUAL.md) – MIDI, SysEx dump, Bluetooth, tablet interface, curves and conversions, audio/RTA, language files
 - Beginner's user manual (PDF): [`FLOW8-Web-Remote-User-Manual.pdf`](FLOW8-Web-Remote-User-Manual.pdf)
 - For developers: protocol table [`docs/flow8-midi-sysex-ble-tabelle.csv`](docs/flow8-midi-sysex-ble-tabelle.csv), fader and low-cut tables in [`docs/`](docs/) (protocol and fader tables have German column headers)

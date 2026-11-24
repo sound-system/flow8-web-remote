@@ -1,4 +1,4 @@
-# Behringer FLOW 8 MIDI Implementation Chart (complete and tested)
+# Behringer FLOW 8 MIDI Implementation Chart (tested)
 
 The complete MIDI implementation of the **Behringer FLOW 8** digital mixer: every MIDI channel, every Control Change (CC), Program Change and note, with value ranges, conversion formulas and the FX preset names. Every message was checked against the mixer's own SysEx state dump. The chart also lists what the official Behringer MIDI documentation leaves out, for example **EQ frequency and Q over MIDI**, **balance for the monitor and FX buses** and **FX parameter 3**. It also corrects the **FX MIDI channels** (14 / 15, not 13 / 14).
 
@@ -9,8 +9,9 @@ This chart is part of [FLOW 8 Web Remote](../README.md), an unofficial browser r
 | Status | Meaning |
 |---|---|
 | **confirmed** | tested on a real FLOW 8 |
-| **per docs** | from Behringer's MIDI documentation, consistent with all tests so far |
+| **per docs** | from Behringer's MIDI documentation, not tested on its own, consistent with all tests so far |
 | **dump** | the value changes in the mixer's state dump; audible effect not checked |
+| **untested** | not checked yet |
 
 ---
 

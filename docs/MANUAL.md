@@ -7,7 +7,9 @@ Everything here was reverse-engineered or taken from public sources. Nothing is 
 | Status | Meaning |
 |---|---|
 | **confirmed** | verified on real hardware during development |
-| **per docs** | from Behringer's MIDI documentation, not yet tested |
+| **per docs** | from Behringer's MIDI documentation, not tested on its own, consistent with all tests so far |
+| **tested** | checked on the mixer in a dedicated test |
+| **untested** | not checked yet |
 | **library** | encoding taken from the community project [abelroes/flow-8-midi](https://github.com/abelroes/flow-8-midi) (protocol facts only, no code) |
 | **pattern** | assumed from the layout of neighbouring channels |
 | **open** | unknown |
@@ -63,7 +65,7 @@ Machine-readable tables live next to this file:
   | `/r/cmd` | `POST` (devices): commands, one JSON object per line. `GET` (*PC only*): waits up to 1 s and returns the queued lines |
   | `/r/audio` | `POST` (*PC only*): levels and spectra for devices. `GET ?ev=1` (devices): event stream (`text/event-stream`), every posted frame is pushed at once as `data: …`, a comment line every 10 s keeps it alive. Plain `GET`: latest frame, 204 if none (fallback for browsers without `EventSource`) |
 
-  Why a server at all: `getUserMedia` device labels, the Firefox feeder and the language folder need a real origin. Opened as `file://`, the page still works but without audio and with only the built-in English text.
+  Why a server at all: `getUserMedia` device labels, the Firefox feeder and the language folder need a real origin. Opened as `file://`, the page still works, but without audio and tablet relay; besides the built-in English, languages come only via *Load Language File…*.
 - **Online (GitHub Pages):** the workflow `.github/workflows/pages.yml` publishes `website/` (start page `index.html` = the MIDI chart, `sitemap.xml`) together with `flow8-mixer-ble.html`, `images/` and `languages/` at `https://letsketchup.github.io/flow8-web-remote/` (Pages source: *GitHub Actions*). `.gitattributes` keeps `website/` and `.github/` out of GitHub's *Download ZIP*. `website/index.html` is generated from `docs/FLOW8-MIDI-Implementation.md`; regenerate it after changing the chart. Served over `https:`, so `REMOTE` and `LANPC` are both false (they test for `http:`) and the page behaves like the `file://` case: MIDI, BLE, dumps and all controls work. No tablet relay, no `/languages` list (built-in English plus *Load Language File…*), no Firefox feeder. Audio via `getUserMedia` should work on an `https:` origin but is untested. `localStorage` belongs to the `github.io` origin, separate from `localhost:8000`.
 - **Browser storage:** everything is kept in `localStorage`, nothing else is stored.
 
@@ -80,7 +82,7 @@ Machine-readable tables live next to this file:
 
 - **Safety rules (by design):**
   - Nothing is sent without a user action.
-  - 48V is switched by hand only, without a confirmation dialog (since this version). It is never sent automatically and never loaded from a channel preset.
+  - 48V is switched by hand only, without a confirmation dialog. It is never sent automatically and never loaded from a channel preset.
   - Snapshot 16 (reset), factory reset, snapshot save/delete and SysEx writes are not implemented.
   - The checkbox *Sending enabled* blocks all output, also from phones and tablets.
   - From phones and tablets, snapshot commands are refused (48V is allowed), and the PC page accepts only the message types listed in §10.
@@ -132,7 +134,7 @@ Machine-readable tables live next to this file:
 | 9 | low cut frequency | 128 steps, 20–600 Hz (§6) | confirmed, all 128 values measured |
 | 21–24 | EQ band 1–4 frequency | 20 Hz…20 kHz, logarithmic (§6) | confirmed, measured on all inputs |
 | 31–34 | EQ band 1–4 Q | 0…19.7, linear (§6); 0 = shelf on bands 1 and 4 | confirmed, measured on all inputs |
-| 10 | pan | 1–127, 64 = center | confirmed |
+| 10 | pan | 0 = left, 64 = center, 127 = right (the page sends 1–127) | confirmed |
 | 11 | compressor | 0–100 (%) | confirmed |
 | 12 | 48V phantom | 127 / 0, channels 1–4 | ch 1/2 per docs; ch 3/4 sent by the page but untested (the docs name ch 1/2 only). Never sent by automatic tests |
 | 14–17 | send level → MON 1, MON 2, FX 1, FX 2 | level curve | per docs |
@@ -268,10 +270,10 @@ These need BLE.
 | 2568 | BT/USB switch (setting 1) | tested |
 | 2569 | USB/BT playback (setting 2): 1 = phones only, 0 = main mix | confirmed |
 | 2593 | Monitor 1/2 source: 0 monitor mix, 1 USB 1/2, 2 USB 3/4 | confirmed |
+| 2601 | USB mode (setting 7): 0 = recording (10 channels), 1 = streaming (main, 2 channels) | tested |
 | 2603 | Ch 5/6 source: 1 = USB, 0 = local jacks | confirmed |
 | 2604 | Ch 7/8 source: 1 = USB, 0 = local | confirmed |
 | 2605 | monitor stereo link | confirmed |
-| 2601 | USB mode (setting 7): 0 = recording (10 channels), 1 = streaming (main, 2 channels) | tested |
 | 2606 | headphone source: 1 = monitor, 0 = main | confirmed |
 | 2607 | phones tap point (setting 13): with source monitor, 0 = MON pre fader, 1 = MON post fader | tested |
 | 2608 | main −10 dBV pad | confirmed |
@@ -293,9 +295,9 @@ Tested with FLOW 8 firmware **v11749**, Bluetooth API version **v9** (shown unde
 | Device name | starts with `FLOW` |
 | Service UUID | `14839ad4-8d7e-415c-9a42-167340cf2339` |
 | Characteristic | `0034594a-a8e7-4b1a-a6b1-cd5243059a57` (reports write + notify, but has **no descriptors**, see below) |
-| Other characteristics | `0035594a-…` and `0036594a-…`: read only, constant 2 bytes (`09 00`, `E5 2D`; probably protocol version and firmware build) |
+| Other characteristics | `0035594a-…` and `0036594a-…`: read only, constant 2 bytes, little-endian: `09 00` = Bluetooth API version 9, `E5 2D` = 0x2DE5 = firmware 11749 (both match the device info in the FLOW app) |
 | Login | `39 01 FD 06 2B 06 39 F1 7F E7 B7 27 8B 8F 35 5A 49 5C 2A` (static key; same on every unit: open) |
-| Session start | `37 01 38` |
+| Mixer state request | `37 01 38` (GetMixerState; the page sends it after the login, the reply `0x38` MixerState is not receivable in the browser) |
 | Snapshot names request | `07 01 08` → notification type `0x27` (not usable in the browser, not sent) |
 | Dump request | `4B 01 4C` → SysEx dump on USB MIDI (confirmed) |
 
@@ -519,7 +521,7 @@ The same page, opened from another device through the computer's network address
 
 - **Mixer view:** mix tabs MAIN / MON 1 / MON 2 / FX 1 / FX 2 (`selMix`), all 7 channels plus the master of the selected mix, without scrolling. Strip from top: name (opens the channel view), pan (MAIN mix only; the master strip shows the balance of the selected bus: MAIN over MIDI or BLE, MON and FX over MIDI; double-tap = center), fader with meter and scale, dB value, mute / solo.
 - **Relative faders and pan:** touching changes nothing, only movement counts; the full range needs `TB_FINE` = 2 track lengths (fader in CC steps 0…127, pan −1…1). Each pointer is captured separately, so several faders can move at once. While a fader is held, incoming state does not move it.
-- **Channel view:** the normal detail area (`#detail`) is moved into a full-screen page with a back button (*← Mixer*); it opens on *All Parameters*; chips and tabs work as on the PC (§8a).
+- **Channel view:** the normal detail area (`#detail`) is moved into a full-screen page with a back button (*← Mixer*); it opens on *All Parameters*; chips and tabs work as on the PC (§8).
 - **Top bar:** *RTA* (settings window, see below), *Global* (the normal Global window), *Fullscreen* (Fullscreen API, `webkit` prefix supported; hidden where the API is missing, e.g. iPhone), *Full View*.
 - **Sends on the channel page:** `relRange()` wraps the range input: the input itself takes no pointer events, the wrapper converts horizontal movement into value changes (full range = 2 × slider width).
 - **RTA settings window:** the same controls as in the PC's Audio window (`auRtaSettings`). Keys `rta, agc, mode, avg, tilt, range, fft, mainRta` are synced both ways: the PC sends them in the state (`a`), a tablet sends changes as a command `{"a":{…}}`. After its own change a tablet ignores incoming values for 2.5 s and then applies the latest, so the two never fight. The PC validates every value (`rtaValid`).
@@ -528,7 +530,7 @@ The same page, opened from another device through the computer's network address
 **Transport**
 
 - **Commands:** `sendMidi` / `bleSend` on a remote queue `{"m":[bytes],"l":label}` / `{"b":[bytes],"k":key,"l":label}` (RTA settings: `{"a":{…}}`). Same control within 30 ms: the last value wins. Then one `POST /r/cmd`. The *Sending enabled* checkbox on the device blocks its own output; on the PC it blocks everything.
-- **State:** long poll `GET /r/state?v=N`. JSON: `d` (last dump, base64, 3068 bytes), `m` (route for “both” controls), `o` / `b` (PC has a MIDI output / BLE connection), `s` (snapshot names), `a` (RTA settings). The dump goes through the normal `finalizeDump`, including “discard while operating”; a discarded dump is applied as soon as the device is idle. The PC posts after every new dump and when anything else changes (checked every second).
+- **State:** long poll `GET /r/state?v=N`. JSON: `d` (last dump, base64, 3068 bytes), `m` (route for “both” controls), `o` / `b` (PC has a MIDI output / BLE connection), `s` (snapshot names; always empty, because the page cannot read them, §5), `a` (RTA settings). The dump goes through the normal `finalizeDump`, including “discard while operating”; a discarded dump is applied as soon as the device is idle. The PC posts after every new dump and when anything else changes (checked every second).
 - **Levels and RTA:** the PC computes a frame every 40 ms while a device was seen in the last 15 s (feeder data if active, else its own per-track analysers) and posts it as soon as the previous post has finished. Frame: `{"id","n","map","b"}`; `b` is base64 of `n × 232` bytes: per track 1 byte level, 200 bytes spectrum (log points 20 Hz–20 kHz), 31 bytes third-octave bands; 1 byte = 0.5 dB (`0` = −127.5 dB … `255` = 0 dB). About 3 KB per frame for 10 tracks. The tablet receives the frames via `EventSource('/r/audio?ev=1')`, polling `/r/audio` every 40 ms only if `EventSource` is missing.
 - **PC page:** long-polls `/r/cmd` and executes each line through the normal `sendMidi` / `bleSend`. Log lines are prefixed “Phone/tablet:”.
 
@@ -555,8 +557,7 @@ The same page, opened from another device through the computer's network address
 
 ## 12 Limits and open questions
 
-- **Server:** `flow8-server.ps1` is untested on real Windows.
-- **Tablet interface:** tested only with a simulated server and browser. In MIDI-only operation without dumps, the PC and the devices do not learn each other's changes until the next dump.
+- **Server and tablet interface:** tested on Windows 10 with real tablets. In MIDI-only operation without dumps, the PC and the devices do not learn each other's changes until the next dump.
 - **BLE encodings:** most come from the library and were verified in use, not byte by byte. Values that matter are documented with their status in the protocol CSV.
 - **Only tested on channel 1:** low cut mapping and BLE low cut. Other channels follow the same layout. USB/BT has no low cut (tested); the page does not offer one there.
 - **Unverified:** snapshot slot numbering over BLE, the meaning of FX parameter 3, Program Change above 16 on the FX channels, BLE balance for MON and FX buses (the page uses MIDI there), icon numbers, MIDI CC 12 on channels 3/4, the unknown flag bytes and the header. Also unverified: whether the BLE login key is identical on every unit.

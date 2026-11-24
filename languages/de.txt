@@ -112,7 +112,7 @@ status_bt_connecting:verbinde…
 status_bt_connected:BT verbunden
 status_bt_error:Fehler
 log_tx_auth:TX BLE Anmeldung 39 01 …
-log_tx_session:TX BLE Session-Start 37 01 38
+log_tx_session:TX BLE Mixer-Zustand anfordern 37 01 38
 log_ble_error:Bluetooth-Fehler: {m}
 log_need_midi:Dump kommt über USB-MIDI: bitte „MIDI aktivieren“ drücken und den Mixer per USB anschließen.
 log_dump_fail:Dump-Abruf mehrfach fehlgeschlagen, Auto-Update gestoppt: {m}
