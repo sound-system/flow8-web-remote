@@ -396,7 +396,7 @@ for 127 of 128 values. The exception is CC 92, which gives 234 Hz instead of 235
 | Pan | `trunc(clamp(pan,−1,1)·127 + 127)` |
 | Gain, limiter | `round((clamp(dB,−60,60)+60)·2)` |
 | EQ gain | `round(clamp(dB,−15,15)/15·127 + 127)`, 127 = 0 dB |
-| Q | Q ≤ 0 → 0 (shelf). Q < 10.7 → `clamp(round((Q−0.3)·10)+1, 1, 101)`. Else `clamp(round(Q−11)+102, 102, 255)` |
+| Q | Q ≤ 0 → 0 (shelf). Q < 10.7 → `clamp(round((Q−0.3)·10)+1, 1, 101)`. Else `clamp(round(Q−11)+102, 102, 255)`. So codes 1–101 = Q 0.3–10.3 in steps of 0.1, codes 102 and up = Q 11, 12, … in whole steps (code 111 = Q 20, the maximum of the FLOW app). Codes above 101 are not yet confirmed on the mixer |
 | Compressor | `trunc(clamp(x,0,1)·255)` |
 
 **BLE fader table shape:** a piecewise-linear dB scale, finest around 0 dB. Exact values are in the CSV.
@@ -460,7 +460,7 @@ The UI accepts samples, ms or m and rounds to whole samples (max 65535 ≈ 1365 
 
 - **Filters:** curves use RBJ “Audio EQ Cookbook” biquads at 48 kHz.
   - PEQ bands are peaking filters.
-  - Q is continuous 0…10.7. Q = 0 is a shelf only on the outer bands (PEQ bands 0 and 3, GEQ bands 0 and 8; the GEQ shelf is drawn only, not verified on the mixer). Other bands with Q = 0 are drawn with the smallest Q the current route can send (`qMin`: MIDI CC 1 = 0.16, BLE code 1 = 0.3).
+  - Q is continuous from 0 up to 20 over Bluetooth (the maximum of the FLOW app; above 10.3 only whole numbers, see the Q code in §6) or up to 19.7 over MIDI (CC 127). Typed, wheel and pinch values are rounded to the value that is actually sent. Q = 0 is a shelf only on the outer bands (PEQ bands 0 and 3, GEQ bands 0 and 8; the GEQ shelf is drawn only, not verified on the mixer). Other bands with Q = 0 are drawn with the smallest Q the current route can send (`qMin`: MIDI CC 1 = 0.16, BLE code 1 = 0.3).
   - The sum of all bands is drawn over 20 Hz – 20 kHz (log), ±18 dB.
   - **Low cut** (channels, when on) is added to the curve as a high-pass: `−10·log10(1 + (fc/f)^(2n))` with n = slope / 6. The slope is **12 dB/octave** (`LC_SLOPE`), measured: with 100 Hz set, 100 Hz is at −3 dB and 75 Hz at −6 dB (model −6.2 dB). It also appears in the small EQ tiles of the strips.
 - **Editing:**
